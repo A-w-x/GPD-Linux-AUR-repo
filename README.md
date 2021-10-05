@@ -1,5 +1,5 @@
-# GPD-Linux-AUR-repo
-AUR repo with packages for GPD devices.
+# GPD Linux AUR repo
+AUR repo with packages optimized for GPD devices.
 
 Supported devices:
  * _GPD Win Max 2020_
