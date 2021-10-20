@@ -1,0 +1,31 @@
+diff -Naur m2sap/src/mesa/main/glthread.c mesa-main/src/mesa/main/glthread.c
+--- m2sap/src/mesa/main/glthread.c	2021-07-10 01:15:28.000000000 +0200
++++ mesa-main/src/mesa/main/glthread.c	2021-07-10 16:39:23.680048840 +0200
+@@ -53,10 +53,10 @@
+ 
+    _glapi_set_dispatch(ctx->CurrentServerDispatch);
+ 
+-   _mesa_HashLockMutex(ctx->Shared->BufferObjects);
+-   ctx->BufferObjectsLocked = true;
+-   mtx_lock(&ctx->Shared->TexMutex);
+-   ctx->TexturesLocked = true;
++   //_mesa_HashLockMutex(ctx->Shared->BufferObjects);
++   ctx->BufferObjectsLocked = false;
++   //mtx_lock(&ctx->Shared->TexMutex);
++   ctx->TexturesLocked = false;
+ 
+    while (pos < used) {
+       const struct marshal_cmd_base *cmd =
+@@ -65,10 +65,10 @@
+       pos += _mesa_unmarshal_dispatch[cmd->cmd_id](ctx, cmd, last);
+    }
+ 
+-   ctx->TexturesLocked = false;
++   /*ctx->TexturesLocked = false;
+    mtx_unlock(&ctx->Shared->TexMutex);
+    ctx->BufferObjectsLocked = false;
+-   _mesa_HashUnlockMutex(ctx->Shared->BufferObjects);
++   _mesa_HashUnlockMutex(ctx->Shared->BufferObjects);*/
+ 
+    assert(pos == used);
+    batch->used = 0;
