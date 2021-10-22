@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=PCSX2Man
+Comment=PCSX2 Games Manager
+Icon=org.gnome.games
+TryExec=pcsx2man
+Exec=pcsx2man
+Categories=Game;Emulator;
+Keywords=PCSX2;PS2;Manager;
+Terminal=false
+Hidden=false

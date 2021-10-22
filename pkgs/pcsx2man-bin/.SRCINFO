@@ -1,0 +1,14 @@
+pkgbase = pcsx2man
+	pkgdesc = PCSX2 games manager
+	pkgver = 1.6.0
+	pkgrel = 1
+	url = https://bitbucket.org/kylon/pcsx2man/src/master/
+	arch = x86_64
+	license = gpl
+	noextract = pcsx2man-1.6.0.AppImage
+	options = !strip
+	source_x86_64 = https://bitbucket.org/kylon/pcsx2man/downloads/pcsx2man-1.6.0.AppImage
+	sha256sums_x86_64 = c4a524620b93dcbc5d744d1e2d00a2d862168cc53651b4a30cfaddb532c3172b
+
+pkgname = pcsx2man
+

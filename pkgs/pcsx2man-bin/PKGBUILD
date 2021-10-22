@@ -1,0 +1,41 @@
+pkgname=pcsx2man
+pkgver=1.6.0
+pkgrel=1
+pkgdesc="PCSX2 game manager"
+arch=('x86_64')
+url="https://bitbucket.org/kylon/pcsx2man/src/master"
+license=('gpl')
+depends=()
+options=(!strip)
+source_x86_64=(
+	"https://bitbucket.org/kylon/pcsx2man/downloads/pcsx2man-${pkgver}.AppImage"
+	"pcsx2man.desktop"
+)
+noextract=("pcsx2man-${pkgver}.AppImage")
+sha256sums_x86_64=(
+	'c4a524620b93dcbc5d744d1e2d00a2d862168cc53651b4a30cfaddb532c3172b'
+	'4bb2dcd891465be4dc380ce2ffe7e7e609ce65bf44aa1366cc6db976e17212b1'
+)
+
+prepare() {
+    chmod +x "pcsx2man-${pkgver}.AppImage"
+    ./"pcsx2man-${pkgver}.AppImage" --appimage-extract
+}
+
+build() {
+    # Fix permissions; .AppImage permissions are 700 for all directories
+    chmod -R a-x+rX squashfs-root/usr
+}
+
+package() {
+    # AppImage
+    install -Dm755 "${srcdir}/pcsx2man-${pkgver}.AppImage" "${pkgdir}/opt/${pkgname}/pcsx2man-${pkgver}.AppImage"
+
+    # Desktop file
+    install -Dm644 "${srcdir}/pcsx2man.desktop"\
+            "${pkgdir}/usr/share/applications/pcsx2man.desktop"
+
+    # Symlink executable
+    install -dm755 "${pkgdir}/usr/bin"
+    ln -s "/opt/${pkgname}/pcsx2man-${pkgver}.AppImage" "${pkgdir}/usr/bin/pcsx2man"
+}

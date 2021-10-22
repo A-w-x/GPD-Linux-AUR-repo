@@ -1,0 +1,19 @@
+pkgbase = igb-dkms
+	pkgdesc = Intel igb Ethernet adapter driver (DKMS version)
+	pkgver = 5.8.5
+	pkgrel = 2
+	url = http://sourceforge.net/projects/e1000/
+	install = igb-dkms.install
+	arch = i686
+	arch = x86_64
+	license = GPL
+	depends = dkms
+	conflicts = igb
+	source = http://downloads.sourceforge.net/project/e1000/igb%20stable/5.8.5/igb-5.8.5.tar.gz
+	source = dkms.conf
+	source = igb-dkms.install
+	sha384sums = ce793d9f53269b8475764d0075ddcbd9149b9dc02ed8232471a4ef7ee445ef4d121fd2a249c7a50e285a415c36144656
+	sha384sums = 1148f38925218390389b3f6cc01c4444e91f3354220093848c8bc262a078ac09091d12343da58a36806527516309439a
+	sha384sums = b67c0f9b934c7ff480b0927fb51c52c5385c1040c1badd45506f9b0eb445504f000c20dd87e235b7e60dc25302e141ce
+
+pkgname = igb-dkms
