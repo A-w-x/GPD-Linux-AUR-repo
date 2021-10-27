@@ -7,6 +7,10 @@ Supported devices:
  * _GPD Win Max 2021 (AMD)_
  * _GPD Win 3_
 
+Custom ArchLinux iso for GPD devices:
+
+https://mega.nz/folder/CslDgIIY#lQ-B9_7vgC9wWmuABHppvg
+
 ### Credits:
 
 GPD Win Max kernel fixes - [Anisse Astier](https://lists.freedesktop.org/archives/dri-devel/2021-September/321984.html)
