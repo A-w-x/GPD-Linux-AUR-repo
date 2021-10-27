@@ -1,0 +1,35 @@
+#!/bin/bash
+if [ -z $1 ]; then
+	echo -e "\nYou must provide a target!\nTargets: max20, maxw3, maxamd, nativeint, generic\n"
+	exit 1
+fi
+
+optflag=""
+
+if [ -f "customization.cfg" ]; then
+	rm customization.cfg
+fi
+
+if [ "$1" == "pull" ]; then
+	git restore customization.cfg
+	git pull
+	exit 0
+elif [ "$1" == "max20" ]; then
+	optflag="icelake-client"
+elif [ "$1" == "maxamd" ]; then
+	optflag="zen2"
+elif [ "$1" == "maxw3" ]; then
+	optflag="tigerlake"
+elif [ "$1" == "nativeint" ]; then
+	optflag="native_intel"
+elif [ "$1" == "generic" ]; then
+	optflag="generic_v4"
+else
+	echo -e "Unknown target!\n"
+	exit 1
+fi
+
+cp tkgconfigbase.cfg customization.cfg
+sed -i "s/OPTFLAG/$optflag/" customization.cfg
+exit 0
+makepkg -s
