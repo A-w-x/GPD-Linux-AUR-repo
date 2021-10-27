@@ -1,10 +1,18 @@
 #!/bin/bash
 if [ -z $1 ]; then
-	echo -e "\nYou must provide a target!\nTargets: max20, maxw3, maxamd, nativeint, generic\n"
+	echo -e "\nYou must provide a target!\nTargets: max20, maxw3, maxamd, generic\n"
 	exit 1
 fi
 
+if [ ! -z $2 ] && [ "$2" != "native" ]; then
+	echo -e "invalid argument!\nvalid args: native\n"
+	exit 1
+fi
+
+pkgnameb=""
+pkgnamel=""
 optflag=""
+cmd=""
 
 if [ -f "customization.cfg" ]; then
 	rm customization.cfg
@@ -14,22 +22,71 @@ if [ "$1" == "pull" ]; then
 	git restore customization.cfg
 	git pull
 	exit 0
-elif [ "$1" == "max20" ]; then
-	optflag="icelake-client"
-elif [ "$1" == "maxamd" ]; then
-	optflag="zen2"
-elif [ "$1" == "maxw3" ]; then
-	optflag="tigerlake"
-elif [ "$1" == "nativeint" ]; then
-	optflag="native_intel"
-elif [ "$1" == "generic" ]; then
-	optflag="generic_v4"
-else
-	echo -e "Unknown target!\n"
-	exit 1
+fi
+
+case "$1" in
+	"max20"|"maxw3")
+		cmd="mitigations=off nowatchdog i915.enable_guc=2"
+		;;
+	"maxamd")
+		cmd="mitigations=off nowatchdog"
+		;;
+	"generic")
+		cmd="mitigations=off nowatchdog"
+		;;
+	*)
+		echo -e "unknown target!\n"
+		exit 1
+		;;
+esac
+
+case "$1" in
+	"max20")
+		pkgnamel="wmax20"
+		pkgnameb="$pkgnamel-tkg"
+		optflag="icelake-client"
+		;;
+	"maxw3")
+		pkgnamel="wmaxw3-tgl"
+		pkgnameb="$pkgnamel-tkg"
+		optflag="tigerlake"
+		;;
+	"maxamd")
+		pkgnamel="wmax21amd"
+		pkgnameb="$pkgnamel-tkg"
+		optflag="zen2"
+		;;
+	"generic")
+		pkgnamel="linux-tkg-generic4"
+		pkgnameb="$pkgnamel"
+		optflag="generic_v4"
+		;;
+	*)
+		echo -e "unknown target!\n"
+		exit 1
+		;;
+esac
+
+if [ ! -z $2 ]; then
+	case "$1" in
+		"max20"|"maxw3")
+			optflag="native_intel"
+			;;
+		"maxamd")
+			optflag="native_amd"
+			;;
+		"generic") ;;
+		*)
+			echo -e "unknown target!\n"
+			exit 1
+			;;
+	esac
 fi
 
 cp tkgconfigbase.cfg customization.cfg
+sed -i "s/PKGNAMEB/$pkgnameb/" customization.cfg
+sed -i "s/PKGNAMEL/$pkgnamel/" customization.cfg
 sed -i "s/OPTFLAG/$optflag/" customization.cfg
-exit 0
+sed -i "s/CMDARGS/$cmd/" customization.cfg
+
 makepkg -s
