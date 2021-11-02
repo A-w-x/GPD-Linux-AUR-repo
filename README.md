@@ -7,6 +7,8 @@ Supported devices:
  * _GPD Win Max 2021 (AMD)_
  * _GPD Win 3_
 
+This repo contains symlinks, downloading this as zip will break them, you must clone it.
+
 ---
 
 ### AwxLinux
