@@ -1,0 +1,14 @@
+<driconf>
+	<device screen="0" driver="dri2">
+		<application name="all">
+			<option name="glsl_zero_init" value="true" />
+			<option name="vblank_mode" value="0" />
+		</application>
+		<application name="firefox" executable="firefox">
+			<option name="vblank_mode" value="3" />
+		</application>
+		<application name="mpv" executable="mpv">
+			<option name="vblank_mode" value="3" />
+		</application>
+	</device>
+</driconf>

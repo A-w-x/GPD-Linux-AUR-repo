@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Cemu
+GenericName=Nintendo Wii U Emulator
+Comment=Windows Nintendo Wii U emulator
+Icon=cemu
+Exec=lutris lutris:rungameid/1
+TryExec=lutris
+Categories=Game;Emulator;
+Keywords=WiiU;Nintendo;Emulator;
+PrefersNonDefaultGPU=true
+Hidden=false

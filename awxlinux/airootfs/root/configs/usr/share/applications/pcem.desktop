@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=PCEM
+Comment=PC Emulator
+Icon=computer
+TryExec=pcem
+Exec=pcem
+Categories=Game;Emulator;
+Keywords=PC;Emulator;IBM;
+Terminal=false
+Hidden=false

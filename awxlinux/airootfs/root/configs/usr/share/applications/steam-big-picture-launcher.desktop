@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Icon=distributor-logo-steamos
+Name=Steam Big Picture Launcher
+Exec=steam -bigpicture
+Terminal=false
+Hidden=false
+Keywords=steam;bigpicture
+Categories=Game
+Comment=Start Steam in Big Picture Mode
+TryExec=steam
+PrefersNonDefaultGPU=true
