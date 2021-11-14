@@ -1,0 +1,28 @@
+diff -Naur linux-5.15-p/drivers/gpu/drm/drm_panel_orientation_quirks.c linux-5.15/drivers/gpu/drm/drm_panel_orientation_quirks.c
+--- linux-5.15-p/drivers/gpu/drm/drm_panel_orientation_quirks.c	2021-10-31 20:53:10.000000000 +0000
++++ linux-5.15/drivers/gpu/drm/drm_panel_orientation_quirks.c	2021-11-14 12:00:05.245991532 +0000
+@@ -175,6 +175,24 @@
+ 		  DMI_EXACT_MATCH(DMI_BOARD_NAME, "Default string"),
+ 		},
+ 		.driver_data = (void *)&gpd_pocket2,
++	}, {	/* GPD Win Max */
++		.matches = {
++		  DMI_EXACT_MATCH(DMI_SYS_VENDOR, "GPD"),
++		  DMI_EXACT_MATCH(DMI_PRODUCT_NAME, "G1619-01"),
++		},
++		.driver_data = (void *)&lcd800x1280_rightside_up,
++	}, {	/* GPD Win Max 2021 intel */
++		.matches = {
++		  DMI_EXACT_MATCH(DMI_SYS_VENDOR, "GPD"),
++		  DMI_EXACT_MATCH(DMI_PRODUCT_NAME, "G1619-03"),
++		},
++		.driver_data = (void *)&lcd800x1280_rightside_up,
++	}, {	/* GPD Win Max 2021 amd */
++		.matches = {
++		  DMI_EXACT_MATCH(DMI_SYS_VENDOR, "GPD"),
++		  DMI_EXACT_MATCH(DMI_PRODUCT_NAME, "G1619-02"),
++		},
++		.driver_data = (void *)&lcd800x1280_rightside_up,
+ 	}, {	/* GPD Win (same note on DMI match as GPD Pocket) */
+ 		.matches = {
+ 		  DMI_EXACT_MATCH(DMI_BOARD_VENDOR, "AMI Corporation"),
