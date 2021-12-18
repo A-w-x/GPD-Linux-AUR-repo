@@ -1,5 +1,5 @@
 <driconf>
-	<device screen="0" driver="dri2">
+	<device screen="0">
 		<application name="all">
 			<option name="glsl_zero_init" value="true" />
 			<option name="vblank_mode" value="0" />

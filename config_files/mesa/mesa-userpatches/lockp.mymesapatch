@@ -1,28 +1,28 @@
-diff -Naur m2sap/src/mesa/main/glthread.c mesa-main/src/mesa/main/glthread.c
---- m2sap/src/mesa/main/glthread.c	2021-07-10 01:15:28.000000000 +0200
-+++ mesa-main/src/mesa/main/glthread.c	2021-07-10 16:39:23.680048840 +0200
-@@ -53,10 +53,10 @@
+diff -Naur mesap/src/mesa/main/glthread.c mesa/src/mesa/main/glthread.c
+--- mesap/src/mesa/main/glthread.c	2021-12-17 22:46:11.202807000 +0100
++++ mesa/src/mesa/main/glthread.c	2021-12-17 22:50:58.102828459 +0100
+@@ -54,10 +54,10 @@
  
     _glapi_set_dispatch(ctx->CurrentServerDispatch);
  
 -   _mesa_HashLockMutex(ctx->Shared->BufferObjects);
 -   ctx->BufferObjectsLocked = true;
--   mtx_lock(&ctx->Shared->TexMutex);
+-   simple_mtx_lock(&ctx->Shared->TexMutex);
 -   ctx->TexturesLocked = true;
 +   //_mesa_HashLockMutex(ctx->Shared->BufferObjects);
 +   ctx->BufferObjectsLocked = false;
-+   //mtx_lock(&ctx->Shared->TexMutex);
++   //simple_mtx_lock(&ctx->Shared->TexMutex);
 +   ctx->TexturesLocked = false;
  
     while (pos < used) {
        const struct marshal_cmd_base *cmd =
-@@ -65,10 +65,10 @@
+@@ -66,10 +66,10 @@
        pos += _mesa_unmarshal_dispatch[cmd->cmd_id](ctx, cmd, last);
     }
  
 -   ctx->TexturesLocked = false;
 +   /*ctx->TexturesLocked = false;
-    mtx_unlock(&ctx->Shared->TexMutex);
+    simple_mtx_unlock(&ctx->Shared->TexMutex);
     ctx->BufferObjectsLocked = false;
 -   _mesa_HashUnlockMutex(ctx->Shared->BufferObjects);
 +   _mesa_HashUnlockMutex(ctx->Shared->BufferObjects);*/

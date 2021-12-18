@@ -14,8 +14,8 @@ drid=""
 galliumd=""
 vulkand=""
 flags=""
-commit=""
-prs="11568 13267 13961 13954"
+commit="eebb2dedb27652761f9c59c4a489ba46c583ab4e"
+prs="14224 14241 14243 14251"
 
 if [ -f "/etc/omakepkg.conf" ]; then
 	sudo cp /etc/omakepkg.conf /etc/makepkg.conf
@@ -38,13 +38,13 @@ fi
 
 case "$1" in
 	"max20"|"maxw3")
-		drid="i915,i965"
-		galliumd="svga,swrast,swr,virgl,iris"
+		#drid="i915"
+		galliumd="svga,virgl,swrast,iris"
 		vulkand="intel"
 		;;
 	"maxamd")
-		drid="r100,r200"
-		galliumd="r300,r600,radeonsi,svga,swrast,swr,virgl"
+		#drid="r100,r200"
+		galliumd="radeonsi,swrast,svga,virgl"
 		vulkand="amd"
 
 		sed -i 's/$_layers/-D vulkan-layers=device-select,overlay/' PKGBUILD

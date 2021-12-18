@@ -1,8 +1,7 @@
-diff --git a/src/intel/vulkan/anv_device.c b/src/intel/vulkan/anv_device.c
-index dde2e469e99..bde650ed003 100644
---- a/src/intel/vulkan/anv_device.c
-+++ b/src/intel/vulkan/anv_device.c
-@@ -1361,14 +1361,14 @@ anv_get_physical_device_features_1_2(struct anv_physical_device *pdevice,
+diff -Naur mesap/src/intel/vulkan/anv_device.c mesa/src/intel/vulkan/anv_device.c
+--- mesap/src/intel/vulkan/anv_device.c	2021-12-17 22:46:11.160807000 +0100
++++ mesa/src/intel/vulkan/anv_device.c	2021-12-17 22:53:29.614839674 +0100
+@@ -1369,14 +1369,14 @@
     f->shaderInputAttachmentArrayDynamicIndexing          = false;
     f->shaderUniformTexelBufferArrayDynamicIndexing       = descIndexing;
     f->shaderStorageTexelBufferArrayDynamicIndexing       = descIndexing;

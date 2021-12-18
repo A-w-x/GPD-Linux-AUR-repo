@@ -713,8 +713,8 @@ if [ "$isSupp" == "1" ]; then
 			fi
 
 			# ryujinx, download a build, user can update once booted
-			wget https://ci.appveyor.com/api/buildjobs/w93sa1dya74qrrnb/artifacts/ryujinx-1.0.7096-linux_x64.tar.gz
-			tar -xvf ryujinx-1.0.7096-linux_x64.tar.gz
+			wget https://ci.appveyor.com/api/buildjobs/eqbhf0jol4w1byi8/artifacts/ryujinx-1.0.7125-linux_x64.tar.gz
+			tar -xvf ryujinx-1.0.7125-linux_x64.tar.gz
 			cp -a publish/. /mnt/opt/ryujinx
 			arch-chroot /mnt ln -s /opt/ryujinx/Ryujinx /usr/bin/ryujinx
 			arch-chroot /mnt chown -R "$username:$username" /opt/ryujinx
