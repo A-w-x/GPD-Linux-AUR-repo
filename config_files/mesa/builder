@@ -14,8 +14,8 @@ drid=""
 galliumd=""
 vulkand=""
 flags=""
-commit="eebb2dedb27652761f9c59c4a489ba46c583ab4e"
-prs="14224 14241 14243 14251"
+commit="222487fa"
+prs="14243 14251"
 
 if [ -f "/etc/omakepkg.conf" ]; then
 	sudo cp /etc/omakepkg.conf /etc/makepkg.conf
