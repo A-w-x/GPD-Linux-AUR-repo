@@ -1,6 +1,6 @@
 pkgbase = awxLinuxInstaller
 	pkgdesc = AwxLinux Installer
-	pkgver = 1.0.0
+	pkgver = 1.0.2
 	pkgrel = 1
 	url = https://github.com/A-w-x/GPD-Linux-AUR-repo
 	arch = x86_64
@@ -8,7 +8,7 @@ pkgbase = awxLinuxInstaller
 	depends = qt6-base
 	source = https://github.com/A-w-x/GPD-Linux-AUR-repo/releases/download/awxLinuxInstaller/awxLinuxInstaller
 	source = awxlinuxinstaller.desktop
-	sha256sums = 7819c4bea767626375483f34162d742814746f89d871ab615d5e73f9a6de76a2
+	sha256sums = ab008517269f3db9bb717d4e222efe8e47a16c2cbb54e0fa63cbca408a938af1
 	sha256sums = ad65e0ade3608426db8b69bf6c27ef768201e3f6ea11e70a8a538b3f05f63bea
 
 pkgname = awxLinuxInstaller
