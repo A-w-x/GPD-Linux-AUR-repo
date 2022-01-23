@@ -1,0 +1,29 @@
+# Maintainer: A-w-x
+
+pkgname=awxLinuxInstaller
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="AwxLinux Installer"
+url="https://github.com/A-w-x/GPD-Linux-AUR-repo"
+arch=('x86_64')
+license=('GPL3')
+depends=('qt6-base')
+source=(
+	"https://github.com/A-w-x/GPD-Linux-AUR-repo/releases/download/awxLinuxInstaller/awxLinuxInstaller"
+	"awxlinuxinstaller.desktop"
+)
+sha256sums=(
+	'7819c4bea767626375483f34162d742814746f89d871ab615d5e73f9a6de76a2'
+	'ad65e0ade3608426db8b69bf6c27ef768201e3f6ea11e70a8a538b3f05f63bea'
+)
+
+prepare() {
+	chmod +x awxLinuxInstaller
+}
+
+package() {
+	install -Dm755 "${srcdir}/awxLinuxInstaller" "${pkgdir}/opt/awxLinuxInstaller/awxLinuxInstaller"
+	install -Dm644 "${srcdir}/awxlinuxinstaller.desktop" "${pkgdir}/usr/share/applications/awxlinuxinstaller.desktop"
+	install -dm755 "${pkgdir}/usr/bin"
+	ln -s "/opt/awxLinuxInstaller/awxLinuxInstaller" "${pkgdir}/usr/bin/awxLinuxInstaller"
+}

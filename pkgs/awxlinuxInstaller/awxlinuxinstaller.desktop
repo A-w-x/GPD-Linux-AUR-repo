@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=awxLinuxInstaller
+Comment=AwxLinux installer
+Icon=run-install
+TryExec=awxLinuxInstaller
+Exec=awxLinuxInstaller
+Categories=System; Utility
+Keywords=Awx;Installer
+Terminal=false
+Hidden=false
