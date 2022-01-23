@@ -1,0 +1,353 @@
+vaapi=""
+cpuv=""
+device=$(dmidecode | grep -i product\ name | grep -Po 'Name: \K[^"]*' | head -n1)
+cpun=$(cat /proc/cpuinfo | grep 'model name' | sed -e 's/model name.*: //' | head -n 1)
+
+function ask() {
+    echo -ne "$1"
+    read -r inpt
+}
+
+function isYes() {
+	if [ "$1" == "y" ] || [ "$1" == "Y" ]; then
+		echo 1
+	elif [ "$1" == "n" ] || [ "$1" == "N" ]; then
+		echo 0
+	elif [ "$1" == "q" ] || [ "$1" == "Q" ]; then
+		echo 3
+	else
+		echo 2
+	fi
+}
+
+# try umount , in the case the user restarted the script
+umount -R /mnt &>/dev/null
+
+# set cpu vendor
+if [[ $cpun =~ "Intel" ]]; then
+	cpuv="Int"
+else
+	cpuv="amd"
+fi
+
+mkfs.ext4 -F "$awxpart"
+timedatectl set-ntp true
+mount "$awxpart" /mnt
+mkdir -p /mnt/boot
+mount "$efipart" /mnt/boot
+pacstrap /mnt base linux linux-firmware
+genfstab -U /mnt >> /mnt/etc/fstab
+
+ln -sf "/mnt/usr/share/zoneinfo/$timezone" /mnt/etc/localtime
+sed -i "s/tzplaceholder/$timezone/" configs/home/user/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-panel.xml
+arch-chroot /mnt hwclock --systohc
+sed -i 's/#en_US.UTF-8/en_US.UTF-8/' /mnt/etc/locale.gen
+arch-chroot /mnt locale-gen
+echo "LANG=en_US.UTF-8" > /mnt/etc/locale.conf
+echo "$deviceName" > /mnt/etc/hostname
+echo "127.0.0.1 localhost" >> /mnt/etc/hosts
+echo "::1       localhost" >> /mnt/etc/hosts
+echo "127.0.1.1 $deviceName.localdomain $deviceName" >> /mnt/etc/hosts
+arch-chroot /mnt mkinitcpio -P
+arch-chroot /mnt useradd -m -G wheel -s /bin/bash "$username"
+arch-chroot /mnt usermod -p $upwd "$username"
+arch-chroot /mnt usermod -p $rpwd root
+
+# pacman and makepkg setup
+sed -i 's/#Color/Color\nILoveCandy/' /mnt/etc/pacman.conf
+sed -i 's/#ParallelDownloads/ParallelDownloads/' /mnt/etc/pacman.conf
+sed -i 's/#\[multilib\]/\[multilib\]/' /mnt/etc/pacman.conf
+sed -i '/\[multilib\]/{n;s/.*/Include = \/etc\/pacman.d\/mirrorlist/}' /mnt/etc/pacman.conf
+echo -e "\n[gpdaurgit]\nSigLevel = Never\nServer = https://github.com/A-w-x/GPD-Linux-AUR-repo/releases/download/packages" >> /mnt/etc/pacman.conf
+sed -i 's/#MAKEFLAGS="-j2"/MAKEFLAGS="-j8"/' /mnt/etc/makepkg.conf
+sed -i 's/-march=x86-64 -mtune=generic/-mtune=native/' /mnt/etc/makepkg.conf
+sed -i 's/#RUSTFLAGS="-C opt-level=2"/RUSTFLAGS="-C opt-level=2 -C target-cpu=native"/' /mnt/etc/makepkg.conf
+
+# temp? fix pkgbuild rpcs3 and maybe others
+sed -i 's/ -Wp,-D_GLIBCXX_ASSERTIONS//' /mnt/etc/makepkg.conf
+
+arch-chroot /mnt pacman -Syy
+arch-chroot /mnt pacman -S --noconfirm --overwrite \* base-devel \
+	xorg-server xf86-input-libinput xorg-xinput xorg-xinit \
+	pipewire pipewire-pulse pipewire-alsa gst-plugin-pipewire pavucontrol sof-firmware alsa-ucm-conf \
+	networkmanager network-manager-applet nm-connection-editor dhcpcd blueman \
+	polkit polkit-gnome xfce4-notifyd notification-daemon dbus-broker xdg-utils udisks2 util-linux \
+	tlp x86_energy_perf_policy ethtool \
+	thunar thunar-volman thunar-archive-plugin thunar-media-tags-plugin gvfs gvfs-mtp gvfs-smb file-roller tumbler ffmpegthumbnailer \
+	xfce4-battery-plugin xfce4-panel xfce4-pulseaudio-plugin xfce4-terminal xfce4-power-manager xfce4-settings xfce4-screenshooter \
+	xfwm4 xfce4-xkb-plugin xfce4-appfinder xfce4-session garcon exo conky \
+	nano git clang ccache git-lfs cmake gedit schedtool sed \
+	ttf-dejavu ttf-liberation noto-fonts-emoji noto-fonts adobe-source-han-sans-otc-fonts \
+	firefox mpv feh ntfs-3g os-prober wget curl \
+	unrar p7zip unzip mame-tools qt6-base
+
+if [ $? -eq 1 ]; then
+	echo -e "\n\nERROR: Unable to install packages!\nInstallation failed, exiting.."
+	umount -R /mnt
+	read -p "Press any key to exit"
+	exit 1
+fi
+
+# vendor specific packages
+if [ "$cpuv" == "Int" ]; then
+	vaapi="iHD"
+
+	arch-chroot /mnt pacman -S --noconfirm --overwrite \* xf86-video-intel \
+		intel-media-driver intel-gpu-tools libvdpau-va-gl intel-ucode
+else
+	vaapi="radeonsi"
+
+	arch-chroot /mnt pacman -S --noconfirm --overwrite \* xf86-video-amdgpu amd-ucode radeontop
+fi
+
+if [ ! -d "/mnt/home/$username/.cache/sessions" ]; then
+	mkdir -p "/mnt/home/$username/.cache/sessions"
+fi
+
+# disable xfce sessions
+arch-chroot /mnt chmod 400 "/home/$username/.cache/sessions"
+
+# remove old install if the user restarted the script
+if [ -d "inst" ]; then
+	rm -R inst
+fi
+
+# install custom configs
+mkdir inst
+cp -a configs/. inst
+mv inst/home/user "inst/home/$username"
+cp -a inst/. /mnt
+
+cp /mnt/etc/X11/xinit/xinitrc "/mnt/home/$username/.xinitrc"
+head -n -6 "/mnt/home/$username/.xinitrc" > "/mnt/home/$username/.bak"
+mv "/mnt/home/$username/.bak" "/mnt/home/$username/.xinitrc"
+sed -i 's/AutoMount=true/AutoMount=false/' /mnt/usr/share/gvfs/mounts/network.mount
+echo -e "\n$username ALL=(ALL) ALL" >> /mnt/etc/sudoers
+echo "$username $deviceName =NOPASSWD: /usr/bin/systemctl poweroff,/usr/bin/systemctl halt,/usr/bin/systemctl reboot" >> /mnt/etc/sudoers
+echo "include \"/home/$username/.gtkrc-2.0.mine\"" > "/mnt/home/$username/.gtkrc-2.0"
+sed -i "s/CPUPLACEHOLDER/${cpun}/" "/mnt/home/$username/.config/conky/conky.conf"
+sed -i 's/MODULES=()/MODULES=(i915)/' /mnt/etc/mkinitcpio.conf
+echo "dev.i915.perf_stream_paranoid=0" > /mnt/etc/sysctl.d/99-i915.conf
+
+# TMP: disable passwrod input
+echo -e "\n$username ALL=(ALL) NOPASSWD: ALL" >> /mnt/etc/sudoers
+
+arch-chroot /mnt mkinitcpio -P
+
+cat <<- EOF > "/mnt/home/$username/.xinitp2"
+#!/bin/sh
+
+# TEMP: waiting for full wayland support
+# part 2 of .xinitrc
+# needed to workaorund rotation issues if set by xfce on boot
+
+feh --no-fehbg --bg-fill '/home/$username/.wallpaper/bg.jpg'
+sleep 3
+feh --no-fehbg --bg-fill '/home/$username/.wallpaper/bg.jpg'
+
+# conky temp workaround
+for hm in \$(ls /sys/class/hwmon/hwmon*/name);
+do
+	n=\$(cat "\$hm")
+	nn=\${hm:22:1}
+
+	if [ "\$n" == "coretemp" ]; then
+			sed -i -e "76s/hwmon [0-9]/hwmon \$nn/" /home/$username/.config/conky/conky.conf
+			break
+	fi
+done
+
+conky &
+EOF
+
+chmod +x "/mnt/home/$username/.xinitp2"
+chmod +x "/mnt/home/$username/.firstsetup"
+
+cat <<- EOF >> "/mnt/home/$username/.bashrc"
+
+	# custom start
+
+	alias up='sudo pacman -Syuu'
+	alias yup='yay -Syuu'
+	alias inst='sudo pacman -S'
+	alias unst='sudo pacman -U'
+	alias yinst='yay -S --answerclean N --answerdiff N --answeredit N'
+	alias del='sudo pacman -Rns'
+	alias updgrub='sudo grub-mkconfig -o /boot/grub/grub.cfg'
+	alias enabootsteam="sed -i 's/steam -bigpicture &//' /home/$username/.xinitp2 && echo 'steam -bigpicture &' >> /home/$username/.xinitp2"
+	alias disabootsteam="sed -i 's/steam -bigpicture &//' /home/$username/.xinitp2"
+
+	# export
+	export DEVICE_PROD_ID=$device
+	export EDITOR=gedit
+	export VISUAL=gedit
+	export PATH="/usr/lib/ccache/bin/:\$PATH"
+	export USE_CCACHE=1
+	export _JAVA_OPTIONS='-Dawt.useSystemAAFontSettings=on -Dswing.aatext=true -Dswing.defaultlaf=com.sun.java.swing.plaf.gtk.GTKLookAndFeel'
+	export LIBVA_DRIVER_NAME=$vaapi
+EOF
+
+cat <<- EOF >> "/mnt/home/$username/.bash_profile"
+
+if [ -z "\${DISPLAY}" ] && [ "\${XDG_VTNR}" -eq 1 ]; then
+  exec startx
+fi
+EOF
+
+cat <<- EOF >> "/mnt/home/$username/.xinitrc"
+
+	export GTK2_RC_FILES="\$HOME/.gtkrc-2.0"
+
+	nm-applet &
+	/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1 &
+	touchegg &
+	~/.xinitp2 &
+	~/.firstsetup &
+	exec startxfce4
+EOF
+
+mkdir -p /mnt/etc/systemd/system/getty@tty1.service.d
+cat <<- EOF > "/mnt/etc/systemd/system/getty@tty1.service.d/override.conf"
+[Service]
+ExecStart=
+ExecStart=-/usr/bin/agetty --autologin $username --noclear %I $TERM
+EOF
+
+# temp helper to install yay
+cat <<- EOF > "/mnt/home/$username/instyay"
+#!/bin/bash
+cd home/$username
+wget https://aur.archlinux.org/cgit/aur.git/snapshot/yay.tar.gz
+tar -xvf yay.tar.gz
+cd yay
+makepkg -rsi --noconfirm
+EOF
+
+# fix permissions
+arch-chroot /mnt chown -R "$username:$username" "home/$username"
+arch-chroot /mnt chown -R "$username:$username" "/opt"
+
+# install yay (AUR pkg manager)
+chmod +x "/mnt/home/$username/instyay"
+arch-chroot /mnt sudo -u $username ./home/$username/instyay
+rm -R "/mnt/home/$username/yay"
+rm "/mnt/home/$username/yay.tar.gz"
+rm "/mnt/home/$username/instyay"
+
+# add required packages from aur
+arch-chroot /mnt sudo -u $username yay -S --noconfirm papirus-icon-theme papirus-folders-git vimix-gtk-themes touchegg-git tlpui-git
+arch-chroot /mnt papirus-folders -C yaru --theme Papirus
+
+arch-chroot /mnt systemctl mask systemd-rfkill.socket
+arch-chroot /mnt systemctl mask systemd-rfkill.service
+arch-chroot /mnt systemctl enable tlp
+arch-chroot /mnt systemctl enable NetworkManager
+arch-chroot /mnt systemctl enable bluetooth
+arch-chroot /mnt systemctl enable fstrim.timer
+arch-chroot /mnt systemctl enable touchegg
+arch-chroot /mnt systemctl disable dbus
+arch-chroot /mnt systemctl --global enable dbus-broker
+
+case $device in
+	"G1619-01") # max 20
+		yes | arch-chroot /mnt pacman -S wmax20-tkg wmax20-tkg-headers mesa-wmax20-tkg-git lib32-mesa-wmax20-tkg-git gpd-winmax-mutekey-fix
+		arch-chroot /mnt sudo -u $username yay -S --noconfirm intel-undervolt
+
+		echo -e "\n[wmax20emus]\nSigLevel = Never\nServer = https://github.com/A-w-x/GPD-Linux-AUR-repo/releases/download/wmax20emus" >> /mnt/etc/pacman.conf
+		sed -i 's/--daemon/--daemon 6 31/' /mnt/lib/systemd/system/touchegg.service
+		echo "export VDPAU_DRIVER=va_gl" >> "/mnt/home/$username/.bashrc"
+
+		# set intel-undervolt
+		sed -i "s/'CPU' 0/'CPU' -50/" /mnt/etc/intel-undervolt.conf
+		sed -i "s/'GPU' 0/'GPU' -50/" /mnt/etc/intel-undervolt.conf
+		sed -i "s/'CPU Cache' 0/'CPU Cache' -50/" /mnt/etc/intel-undervolt.conf
+		sed -i "s/'System Agent' 0/'System Agent' -20/" /mnt/etc/intel-undervolt.conf
+		sed -i "s/interval 5000/interval 35000/" /mnt/etc/intel-undervolt.conf
+		;;
+	"G1618-03"|"G1619-03") # win3 | max 21
+		yes | arch-chroot /mnt pacman -S wmaxw3-tgl-tkg wmaxw3-tgl-tkg-headers mesa-wmax21w3-tkg-git lib32-mesa-wmax21w3-tkg-git
+
+		if [ "$device" == "G1618-03" ]; then
+			arch-chroot /mnt sudo -u $username yay -S --noconfirm goodix-gpdwin3-dkms
+			sed -i 's/--daemon/--daemon 6 29/' /mnt/lib/systemd/system/touchegg.service
+		else
+			yes | arch-chroot /mnt pacman -S gpd-winmax-mutekey-fix
+			sed -i 's/--daemon/--daemon 6 31/' /mnt/lib/systemd/system/touchegg.service
+		fi
+
+		echo -e "\n[wmax21w3emus]\nSigLevel = Never\nServer = https://github.com/A-w-x/GPD-Linux-AUR-repo/releases/download/wmax21w3emus" >> /mnt/etc/pacman.conf
+
+		echo "options snd-intel-dspcfg dsp_driver=1" > /mnt/etc/modprobe.d/alsa-base.conf
+		echo "export VDPAU_DRIVER=va_gl" >> "/mnt/home/$username/.bashrc"
+		sed -i 's/eDP1/DSI1/' /mnt/etc/X11/xorg.conf.d/30-monitor.conf
+		;;
+	"G1619-02") # max 21 amd - thanks AhmadJSabt
+		yes | arch-chroot /mnt pacman -S wmax21amd-tkg wmax21amd-tkg-headers mesa-wmax21amd-tkg-git lib32-mesa-wmax21amd-tkg-git gpd-winmax-mutekey-fix igb-dkms
+
+		echo -e "\n[wmax21amdemus]\nSigLevel = Never\nServer = https://github.com/A-w-x/GPD-Linux-AUR-repo/releases/download/wmax21amdemus" >> /mnt/etc/pacman.conf
+		sed -i 's/--daemon/--daemon 6 31/' /mnt/lib/systemd/system/touchegg.service
+		;;
+	*)
+		if [ "$cpuv" == "Int" ]; then
+			arch-chroot /mnt pacman -S --noconfirm mesa vulkan-intel lib32-mesa lib32-vulkan-intel vulkan-mesa-layers \
+				lib32-vulkan-mesa-layers
+		else
+			arch-chroot /mnt pacman -S --noconfirm mesa vulkan-radeon libva-mesa-driver mesa-vdpau lib32-mesa \
+				lib32-libva-mesa-driver lib32-vulkan-mesa-layers vulkan-mesa-layers lib32-mesa-vdpau
+		fi
+		;;
+esac
+
+arch-chroot /mnt chmod +x /opt/scripts/savefolderlink.sh
+arch-chroot /mnt chmod +x /opt/scripts/romsfolderlink.sh
+arch-chroot /mnt ln -s /opt/scripts/savefolderlink.sh /usr/local/bin/savefolderlink
+arch-chroot /mnt ln -s /opt/scripts/romsfolderlink.sh /usr/local/bin/romsfolderlink
+
+arch-chroot /mnt pacman -Syy
+
+if [ $swap -gt 0]; then
+	dd if=/dev/zero of=/mnt/swapfile bs=1M count=$(($swap * 1024)) status=progress
+	chmod 600 /mnt/swapfile
+	mkswap /mnt/swapfile
+	echo "/swapfile none swap defaults 0 0" >> /mnt/etc/fstab
+	echo "vm.swappiness=0" > /mnt/etc/sysctl.d/90-swapfile.conf
+fi
+
+if [ "$instGrub" == "true" ]; then
+	arch-chroot /mnt pacman -S --noconfirm grub efibootmgr
+	arch-chroot /mnt grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB
+
+	if [ $? -eq 1 ]; then
+		echo -e "\nERROR: installation failed, exiting..\n"
+		umount -R /mnt
+		read -p "Press any key to exit"
+		exit 1
+	fi
+
+	echo "GRUB_DISABLE_OS_PROBER=false" >> /mnt/etc/default/grub
+	arch-chroot /mnt grub-mkconfig -o /boot/grub/grub.cfg
+fi
+
+# restore password input
+sed -i '$d' /mnt/etc/sudoers
+umount -R /mnt
+
+clear
+echo -e "\n\n #############################\n" \
+            "#   INSTALLATION COMPLETE!  #\n" \
+            "#############################"
+
+while true; do
+	ask "Do you want to reboot now? [Y/n/q]: "
+
+	ret=$(isYes "$inpt")
+	if [ $ret -eq 1 ]; then
+		reboot
+	elif [ $ret -eq 0 ]; then
+		exit 0
+	elif [ $ret -eq 3 ]; then
+		exit 0
+	else
+		echo -e "wrong input\n"
+	fi
+done

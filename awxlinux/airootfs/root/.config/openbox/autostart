@@ -1,0 +1,7 @@
+
+feh --no-fehbg --bg-fill /root/.bg.jpg &
+tint2 &
+nm-applet &
+/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1 &
+thunar --daemon &
+awxLinuxInstaller &
