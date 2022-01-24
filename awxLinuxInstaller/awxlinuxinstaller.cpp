@@ -329,10 +329,10 @@ void AwxLinuxInstaller::installApps() {
         }
 
         if (emusStrList.contains("ryu")) {
-            fstream << "ryuV=\"1.1.5\"\n" <<
+            fstream << "ryuV=\"1.1.8\"\n" <<
+                       "rm -r /opt/ryujinx\n" <<
                        "wget \"https://github.com/Ryujinx/release-channel-master/releases/download/$ryuV/ryujinx-$ryuV-linux_x64.tar.gz\"\n" <<
                        "tar -xvf \"ryujinx-$ryuV-linux_x64.tar.gz\"\n" <<
-                       "mkdir /opt/ryujinx\n" <<
                        "mv publish ryujinx\n" <<
                        "mv ryujinx /opt\n" <<
                        "chmod +x /opt/ryujinx/Ryujinx\n" <<
@@ -343,13 +343,14 @@ void AwxLinuxInstaller::installApps() {
             emusStrList.removeAll("ryu");
         }
 
-        fstream << "sudo pacman -S --noconfirm " << emusStrList.join("") << "\n";
+        if (!emusStrList.empty())
+            fstream << "sudo pacman -S --noconfirm " << emusStrList.join(" ") << "\n";
     }
 
     if (!pcGamesStrList.empty()) {
         fstream << "echo -e \"Installing pc games apps\\n\"\n" <<
                    "sudo pacman -S --noconfirm wine wine-mono winetricks lutris vkd3d lib32-vkd3d wqy-zenhei lib32-libcanberra\n" <<
-                   "yay -S --noconfirm " << pcGamesStrList.join("") << "\n";
+                   "yay -S --noconfirm " << pcGamesStrList.join(" ") << "\n";
 
         if (pcGamesStrList.contains("steam")) { // steam big picture focus fix
             fstream << "echo \"export SDL_VIDEO_MINIMIZE_ON_FOCUS_LOSS=0\" >> \"$HOME/.bashrc\"\n" <<

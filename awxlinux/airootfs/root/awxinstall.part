@@ -79,7 +79,7 @@ arch-chroot /mnt pacman -S --noconfirm --overwrite \* base-devel \
 	nano git clang ccache git-lfs cmake gedit schedtool sed \
 	ttf-dejavu ttf-liberation noto-fonts-emoji noto-fonts adobe-source-han-sans-otc-fonts \
 	firefox mpv feh ntfs-3g os-prober wget curl \
-	unrar p7zip unzip mame-tools qt6-base
+	unrar p7zip unzip mame-tools qt6-base awxLinuxInstaller
 
 if [ $? -eq 1 ]; then
 	echo -e "\n\nERROR: Unable to install packages!\nInstallation failed, exiting.."

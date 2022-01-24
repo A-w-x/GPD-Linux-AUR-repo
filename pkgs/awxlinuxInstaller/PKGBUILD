@@ -2,7 +2,7 @@
 
 pkgname=awxLinuxInstaller
 pkgver=1.0.2
-pkgrel=1
+pkgrel=2
 pkgdesc="AwxLinux Installer"
 url="https://github.com/A-w-x/GPD-Linux-AUR-repo"
 arch=('x86_64')
@@ -13,7 +13,7 @@ source=(
 	"awxlinuxinstaller.desktop"
 )
 sha256sums=(
-	'ab008517269f3db9bb717d4e222efe8e47a16c2cbb54e0fa63cbca408a938af1'
+	'6590e689eeed49e90f960b65145b2f4f2c27f6cc8c5383a59750180d7511e8f3'
 	'ad65e0ade3608426db8b69bf6c27ef768201e3f6ea11e70a8a538b3f05f63bea'
 )
 
