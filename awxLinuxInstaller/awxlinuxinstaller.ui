@@ -21,7 +21,7 @@
        <bool>true</bool>
       </property>
       <property name="currentIndex">
-       <number>0</number>
+       <number>5</number>
       </property>
       <widget class="QWidget" name="tab">
        <attribute name="title">
@@ -573,17 +573,24 @@
            <string>Additions</string>
           </property>
           <layout class="QGridLayout" name="gridLayout_5">
-           <item row="0" column="0">
+           <item row="0" column="1">
             <widget class="QCheckBox" name="runSteamBootChk">
              <property name="text">
               <string>Run Steam Big Picture at startup</string>
              </property>
             </widget>
            </item>
-           <item row="0" column="1">
+           <item row="0" column="2">
             <widget class="QCheckBox" name="instMangoChk">
              <property name="text">
               <string>Install MangoHud and GOverlay</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="0">
+            <widget class="QCheckBox" name="xbcontrChk">
+             <property name="text">
+              <string>Xbox One bluetooth controllers support</string>
              </property>
             </widget>
            </item>

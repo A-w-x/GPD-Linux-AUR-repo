@@ -366,6 +366,14 @@ void AwxLinuxInstaller::installApps() {
                    "yay -S --noconfirm vkbasalt goverlay-bin lib32-mangohud\n";
     }
 
+    if (ui->xbcontrChk->checkState() == Qt::Checked) { // add some tweaks from ChimeraOS
+        fstream << "yay -S --noconfirm xpadneo-dkms-git\n" <<
+                   "sudo sed -i 's/#MinConnectionInterval=/MinConnectionInterval=7/' /etc/bluetooth/main.conf\n" <<
+                   "sudo sed -i 's/#MaxConnectionInterval=/MaxConnectionInterval=9/' /etc/bluetooth/main.conf\n" <<
+                   "sudo sed -i 's/#ConnectionLatency=/ConnectionLatency=0/' /etc/bluetooth/main.conf\n" <<
+                   "sudo sed -i 's/#JustWorksRepairing = never/JustWorksRepairing=confirm/' /etc/bluetooth/main.conf\n";
+    }
+
     fstream << "echo \"###########\"\n" <<
                "echo Done!\n" <<
                "echo \"##########\"\n"
