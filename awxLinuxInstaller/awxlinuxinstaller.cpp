@@ -304,17 +304,13 @@ void AwxLinuxInstaller::installApps() {
 
         if (emusStrList.contains("cemu")) {
             fstream << "sudo pacman -S --noconfirm wine wine-mono winetricks lutris vkd3d lib32-vkd3d\n" <<
-                       "cmver=\"1.26.1\"\n" <<
-                       "chver=\"1251c_0575\"\n" <<
+                       "cmver=\"1.26.2\"\n" <<
                        "wget \"https://cemu.info/releases/cemu_$cmver.zip\"\n" <<
-                       "wget \"https://files.sshnuke.net/cemuhook_$chver.zip\"\n" <<
                        "unzip \"cemu_$cmver.zip\"\n" <<
                        "mv \"cemu_$cmver\" Cemu\n" <<
-                       "unzip \"cemuhook_$chver.zip\" -d Cemu\n" <<
                        "wget https://lutris.nyc3.cdn.digitaloceanspaces.com/games/cemu/sharedFonts.tar.xz\n" <<
                        "tar -xvf sharedFonts.tar.xz --directory Cemu\n" <<
                        "cd Cemu\n" <<
-                       "wget https://raw.githubusercontent.com/dnmodder/cemu_lutris_files/master/cemuhook.ini\n" <<
                        "mkdir controllerProfiles\n" <<
                        "cd controllerProfiles\n" <<
                        "wget https://raw.githubusercontent.com/AccountOneOff/lutris_files/master/Xbox_Controller.txt\n" <<
@@ -322,7 +318,7 @@ void AwxLinuxInstaller::installApps() {
                        "cd ../..\n" <<
                        "mkdir -p /opt/Cemu/drive_c\n" <<
                        "mv Cemu /opt/Cemu/drive_c\n" <<
-                       "rm \"cemu_$cmver.zip\" \"cemuhook_$chver.zip\" sharedFonts.tar.xz\n" <<
+                       "rm \"cemu_$cmver.zip\" sharedFonts.tar.xz\n" <<
                        "rm -r Cemu\n";
 
             emusStrList.removeAll("cemu");
