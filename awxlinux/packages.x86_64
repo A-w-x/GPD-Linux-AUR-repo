@@ -39,7 +39,7 @@ jfsutils
 less
 libfido2
 libusb-compat
-linux-tkg-generic4
+tkg-generic4
 linux-atm
 linux-firmware
 lsscsi

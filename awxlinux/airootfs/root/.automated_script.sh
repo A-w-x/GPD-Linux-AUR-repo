@@ -31,4 +31,6 @@ automated_script ()
 
 if [[ $(tty) == "/dev/tty1" ]]; then
     automated_script
+    modprobe -r goodix_ts
+    modprobe goodix_ts
 fi
