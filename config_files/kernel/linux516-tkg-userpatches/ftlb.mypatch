@@ -1,0 +1,61 @@
+diff -Naur linux-5.16/drivers/gpu/drm/i915/gem/i915_gem_pages.c noseclinux-5.16/drivers/gpu/drm/i915/gem/i915_gem_pages.c
+--- linux-5.16/drivers/gpu/drm/i915/gem/i915_gem_pages.c	2022-02-14 14:28:07.043152676 +0100
++++ noseclinux-5.16/drivers/gpu/drm/i915/gem/i915_gem_pages.c	2022-02-14 14:18:45.375176762 +0100
+@@ -219,13 +219,13 @@
+ 	__i915_gem_object_reset_page_iter(obj);
+ 	obj->mm.page_sizes.phys = obj->mm.page_sizes.sg = 0;
+ 
+-	if (test_and_clear_bit(I915_BO_WAS_BOUND_BIT, &obj->flags)) {
++	/*if (test_and_clear_bit(I915_BO_WAS_BOUND_BIT, &obj->flags)) {
+ 		struct drm_i915_private *i915 = to_i915(obj->base.dev);
+ 		intel_wakeref_t wakeref;
+ 
+ 		with_intel_runtime_pm_if_active(&i915->runtime_pm, wakeref)
+ 			intel_gt_invalidate_tlbs(&i915->gt);
+-	}
++	}*/
+ 
+ 	return pages;
+ }
+diff -Naur linux-5.16/drivers/gpu/drm/i915/gt/intel_gt.c noseclinux-5.16/drivers/gpu/drm/i915/gt/intel_gt.c
+--- linux-5.16/drivers/gpu/drm/i915/gt/intel_gt.c	2022-02-14 14:28:07.045152676 +0100
++++ noseclinux-5.16/drivers/gpu/drm/i915/gt/intel_gt.c	2022-02-14 14:19:08.387175775 +0100
+@@ -30,7 +30,7 @@
+ 
+ 	spin_lock_init(&gt->irq_lock);
+ 
+-	mutex_init(&gt->tlb_invalidate_lock);
++	//mutex_init(&gt->tlb_invalidate_lock);
+ 
+ 	INIT_LIST_HEAD(&gt->closed_vma);
+ 	spin_lock_init(&gt->closed_lock);
+diff -Naur linux-5.16/drivers/gpu/drm/i915/i915_vma.c noseclinux-5.16/drivers/gpu/drm/i915/i915_vma.c
+--- linux-5.16/drivers/gpu/drm/i915/i915_vma.c	2022-02-14 14:28:07.045152676 +0100
++++ noseclinux-5.16/drivers/gpu/drm/i915/i915_vma.c	2022-02-14 14:21:52.959168718 +0100
+@@ -431,8 +431,8 @@
+ 		vma->ops->bind_vma(vma->vm, NULL, vma, cache_level, bind_flags);
+ 	}
+ 
+-	if (vma->obj)
+-		set_bit(I915_BO_WAS_BOUND_BIT, &vma->obj->flags);
++	/*if (vma->obj)
++		set_bit(I915_BO_WAS_BOUND_BIT, &vma->obj->flags);*/
+ 
+ 	atomic_or(bind_flags, &vma->flags);
+ 	return 0;
+diff -Naur linux-5.16/drivers/gpu/drm/i915/intel_uncore.c noseclinux-5.16/drivers/gpu/drm/i915/intel_uncore.c
+--- linux-5.16/drivers/gpu/drm/i915/intel_uncore.c	2022-02-14 14:28:07.047152675 +0100
++++ noseclinux-5.16/drivers/gpu/drm/i915/intel_uncore.c	2022-02-14 14:26:24.765157062 +0100
+@@ -740,10 +740,10 @@
+ 			continue;
+ 		}
+ 
+-		if (delayed &&
++		/*if (delayed &&
+ 		    !(domain->uncore->fw_domains_timer & domain->mask))
+ 			fw_domain_arm_timer(domain);
+-		else
++		else*/
+ 			fw_domains_put(uncore, domain->mask);
+ 	}
+ }
