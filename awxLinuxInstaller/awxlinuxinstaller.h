@@ -79,7 +79,8 @@ private:
     void initPcGamesTab();
     void genInstallScript(const QString &usrName, const QString &deviceName,
                           const QString &timezone, const QString &efiPart,
-                          const QString &awxPart, qint32 swapSz, bool instGrub,
+                          const QString &awxPart, const QString &homePart,
+                          qint32 swapSz, bool installXfce, bool instGrub,
                           const QString &upwd, const QString &rpwd);
     void installOS();
     void installApps();

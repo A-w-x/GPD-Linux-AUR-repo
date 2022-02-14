@@ -23,6 +23,7 @@ int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
     AwxLinuxInstaller w;
+    w.setFixedHeight(690);
     w.show();
     return a.exec();
 }

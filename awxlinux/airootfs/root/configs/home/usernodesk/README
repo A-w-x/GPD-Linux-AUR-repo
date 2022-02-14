@@ -1,0 +1,94 @@
+Available Commands:
+
+up	-> sudo pacman -Syuu
+yup	-> yay -Syuu
+inst	-> sudo pacman -S
+yinst	-> yay -S --answerclean N --answerdiff N --answeredit N
+unst	-> sudo pacman -U
+del	-> sudo pacman -Rns
+updgrub -> sudo grub-mkconfig -o /boot/grub/grub.cfg
+
+
+Additional Commands:
+
+- savefolderlink
+
+	*the disk label is the name you see in file manager*
+	*you can also set a custom one*
+
+	this will move your saves into a single place,
+	so that it is easier to backup them or keep them
+	synced with something like gdrive, dropbox etc..
+
+	it also lets you restore your saves if you reinstall the os
+	with easy, but it requires a particular setup,
+
+	it is supposed you will use an external storage, like micro sd
+
+	cemu is supposed to be installed to /opt/Lutris/cemu
+
+	if this is your first time,
+	create a folder named 'SAVES' in the root folder
+
+	run the script: `savefolderlink setup`
+
+	it will copy all the folders from your ssd to the SAVES folder
+	make sure there is enough space
+
+	run the script again: `savefolderlink`
+
+	it will now create all the links
+
+
+	next time, you just run `savefolderlink` to link all the folders
+	in your fresh install
+
+	if you need to copy new folders, because you added new emulators,
+	and they are supported by the script,
+	run the first setup, then link the folders
+
+
+- romsfolderlink
+
+	*the disk label is the name you see in file manager*
+        *you can also set a custom one*
+
+	link external bios or game folders for convenience where possible
+	into a single place
+
+	create the following folders in the root folder of your sd or usb key
+
+	- bios
+	- bios/pcsx2
+	- bios/system
+	- bios/pcem/roms
+	- wiiu
+	
+
+	you don't need all of them if you are not using all these emulators
+
+	system is the retroarch system folder
+
+	wiiu is the games folder of cemu, ie where your loadiine backup reside
+
+	this will link:
+
+	retroarch -> system
+	cemu -> wiiu
+	pcsx2 -> pcsx2
+	duckstation -> system
+	pcem -> pcem/roms
+
+	it reuses retroarch system folder for duckstation
+
+	cemu is supposed to be installed to /opt/Lutris/cemu
+
+
+
+# CREDITS
+
+Molokai [Gedit Theme / GTKsource Style] - cbleslie
+Prismatic Night [Openbox themes] - h4d35x9
+sunset cursors [cursors theme] - yeyushengfan258
+pcsx2man - kylon
+GPD Win Max AMD test - AhmadJSabt

@@ -33,6 +33,7 @@ fi
 mkfs.ext4 -F "$awxpart"
 timedatectl set-ntp true
 mount "$awxpart" /mnt
+mount "$homepart" /mnt/home
 mkdir -p /mnt/boot
 mount "$efipart" /mnt/boot
 pacstrap /mnt base linux linux-firmware
@@ -67,19 +68,32 @@ sed -i 's/#RUSTFLAGS="-C opt-level=2"/RUSTFLAGS="-C opt-level=2 -C target-cpu=na
 sed -i 's/ -Wp,-D_GLIBCXX_ASSERTIONS//' /mnt/etc/makepkg.conf
 
 arch-chroot /mnt pacman -Syy
-arch-chroot /mnt pacman -S --noconfirm --overwrite \* base-devel \
-	xorg-server xf86-input-libinput xorg-xinput xorg-xinit \
-	pipewire pipewire-pulse pipewire-alsa gst-plugin-pipewire pavucontrol sof-firmware alsa-ucm-conf \
-	networkmanager network-manager-applet nm-connection-editor dhcpcd blueman \
-	polkit polkit-gnome xfce4-notifyd notification-daemon dbus-broker xdg-utils udisks2 util-linux \
-	tlp x86_energy_perf_policy ethtool \
-	thunar thunar-volman thunar-archive-plugin thunar-media-tags-plugin gvfs gvfs-mtp gvfs-smb file-roller tumbler ffmpegthumbnailer \
-	xfce4-battery-plugin xfce4-panel xfce4-pulseaudio-plugin xfce4-terminal xfce4-power-manager xfce4-settings xfce4-screenshooter \
-	xfwm4 xfce4-xkb-plugin xfce4-appfinder xfce4-session garcon exo conky \
-	nano git clang ccache git-lfs cmake gedit schedtool sed \
-	ttf-dejavu ttf-liberation noto-fonts-emoji noto-fonts adobe-source-han-sans-otc-fonts \
-	firefox mpv feh ntfs-3g os-prober wget curl \
-	unrar p7zip unzip mame-tools qt6-base awxLinuxInstaller
+
+if [ "$instxfce" == "true" ]; then
+	arch-chroot /mnt pacman -S --noconfirm --overwrite \* base-devel \
+		xorg-server xf86-input-libinput xorg-xinput xorg-xinit \
+		pipewire pipewire-pulse pipewire-alsa gst-plugin-pipewire pavucontrol sof-firmware alsa-ucm-conf \
+		networkmanager network-manager-applet nm-connection-editor dhcpcd blueman \
+		polkit polkit-gnome xfce4-notifyd notification-daemon dbus-broker xdg-utils udisks2 util-linux \
+		tlp x86_energy_perf_policy ethtool \
+		thunar thunar-volman thunar-archive-plugin thunar-media-tags-plugin gvfs gvfs-mtp gvfs-smb file-roller tumbler ffmpegthumbnailer \
+		xfce4-battery-plugin xfce4-panel xfce4-pulseaudio-plugin xfce4-terminal xfce4-power-manager xfce4-settings xfce4-screenshooter \
+		xfwm4 xfce4-xkb-plugin xfce4-appfinder xfce4-session garcon exo conky \
+		nano git clang ccache git-lfs cmake gedit schedtool sed \
+		ttf-dejavu ttf-liberation noto-fonts-emoji noto-fonts adobe-source-han-sans-otc-fonts \
+		firefox mpv feh ntfs-3g os-prober wget curl \
+		unrar p7zip unzip mame-tools qt5-base qt6-base awxLinuxInstaller
+else
+	arch-chroot /mnt pacman -S --noconfirm --overwrite \* base-devel \
+		pipewire pipewire-pulse pipewire-alsa gst-plugin-pipewire pavucontrol sof-firmware alsa-ucm-conf \
+		dhcpcd blueman \
+		dbus-broker xdg-utils udisks2 util-linux \
+		tlp x86_energy_perf_policy ethtool \
+		nano git clang ccache git-lfs cmake schedtool sed \
+		ttf-dejavu ttf-liberation noto-fonts-emoji noto-fonts adobe-source-han-sans-otc-fonts \
+		firefox ntfs-3g os-prober wget curl \
+		unrar p7zip unzip mame-tools qt5-base qt6-base awxLinuxInstaller
+fi
 
 if [ $? -eq 1 ]; then
 	echo -e "\n\nERROR: Unable to install packages!\nInstallation failed, exiting.."
@@ -100,13 +114,6 @@ else
 	arch-chroot /mnt pacman -S --noconfirm --overwrite \* xf86-video-amdgpu amd-ucode radeontop
 fi
 
-if [ ! -d "/mnt/home/$username/.cache/sessions" ]; then
-	mkdir -p "/mnt/home/$username/.cache/sessions"
-fi
-
-# disable xfce sessions
-arch-chroot /mnt chmod 400 "/home/$username/.cache/sessions"
-
 # remove old install if the user restarted the script
 if [ -d "inst" ]; then
 	rm -R inst
@@ -115,53 +122,102 @@ fi
 # install custom configs
 mkdir inst
 cp -a configs/. inst
-mv inst/home/user "inst/home/$username"
+
+if [ "$instxfce" == "true" ]; then
+	mv inst/home/user "inst/home/$username"
+	rm -r inst/home/usernodesk
+else
+	mv inst/home/usernodesk "inst/home/$username"
+	rm -r inst/home/user
+fi
+
 cp -a inst/. /mnt
 
-cp /mnt/etc/X11/xinit/xinitrc "/mnt/home/$username/.xinitrc"
-head -n -6 "/mnt/home/$username/.xinitrc" > "/mnt/home/$username/.bak"
-mv "/mnt/home/$username/.bak" "/mnt/home/$username/.xinitrc"
-sed -i 's/AutoMount=true/AutoMount=false/' /mnt/usr/share/gvfs/mounts/network.mount
+if [ "$instxfce" == "true" ]; then
+	if [ ! -d "/mnt/home/$username/.cache/sessions" ]; then
+		mkdir -p "/mnt/home/$username/.cache/sessions"
+	fi
+
+	# disable xfce sessions
+	arch-chroot /mnt chmod 400 "/home/$username/.cache/sessions"
+
+	cp /mnt/etc/X11/xinit/xinitrc "/mnt/home/$username/.xinitrc"
+	head -n -6 "/mnt/home/$username/.xinitrc" > "/mnt/home/$username/.bak"
+	mv "/mnt/home/$username/.bak" "/mnt/home/$username/.xinitrc"
+	sed -i "s/CPUPLACEHOLDER/${cpun}/" "/mnt/home/$username/.config/conky/conky.conf"
+	sed -i 's/AutoMount=true/AutoMount=false/' /mnt/usr/share/gvfs/mounts/network.mount
+fi
+
 echo -e "\n$username ALL=(ALL) ALL" >> /mnt/etc/sudoers
 echo "$username $deviceName =NOPASSWD: /usr/bin/systemctl poweroff,/usr/bin/systemctl halt,/usr/bin/systemctl reboot" >> /mnt/etc/sudoers
 echo "include \"/home/$username/.gtkrc-2.0.mine\"" > "/mnt/home/$username/.gtkrc-2.0"
-sed -i "s/CPUPLACEHOLDER/${cpun}/" "/mnt/home/$username/.config/conky/conky.conf"
-sed -i 's/MODULES=()/MODULES=(i915)/' /mnt/etc/mkinitcpio.conf
-echo "dev.i915.perf_stream_paranoid=0" > /mnt/etc/sysctl.d/99-i915.conf
 
-# TMP: disable passwrod input
+if [ "$cpuv" == "Int" ]; then
+	sed -i 's/MODULES=()/MODULES=(i915)/' /mnt/etc/mkinitcpio.conf
+	echo "dev.i915.perf_stream_paranoid=0" > /mnt/etc/sysctl.d/99-i915.conf
+fi
+
+# TMP: disable password input
 echo -e "\n$username ALL=(ALL) NOPASSWD: ALL" >> /mnt/etc/sudoers
 
 arch-chroot /mnt mkinitcpio -P
 
-cat <<- EOF > "/mnt/home/$username/.xinitp2"
-#!/bin/sh
+if [ "$instxfce" == "true" ]; then
+	cat <<- EOF > "/mnt/home/$username/.xinitp2"
+	#!/bin/sh
 
-# TEMP: waiting for full wayland support
-# part 2 of .xinitrc
-# needed to workaorund rotation issues if set by xfce on boot
+	# TEMP: waiting for full wayland support
+	# part 2 of .xinitrc
+	# needed to workaorund rotation issues if set by xfce on boot
 
-feh --no-fehbg --bg-fill '/home/$username/.wallpaper/bg.jpg'
-sleep 3
-feh --no-fehbg --bg-fill '/home/$username/.wallpaper/bg.jpg'
+	feh --no-fehbg --bg-fill '/home/$username/.wallpaper/bg.jpg'
+	sleep 3
+	feh --no-fehbg --bg-fill '/home/$username/.wallpaper/bg.jpg'
 
-# conky temp workaround
-for hm in \$(ls /sys/class/hwmon/hwmon*/name);
-do
-	n=\$(cat "\$hm")
-	nn=\${hm:22:1}
+	# conky temp workaround
+	for hm in \$(ls /sys/class/hwmon/hwmon*/name);
+	do
+		n=\$(cat "\$hm")
+		nn=\${hm:22:1}
 
-	if [ "\$n" == "coretemp" ]; then
-			sed -i -e "76s/hwmon [0-9]/hwmon \$nn/" /home/$username/.config/conky/conky.conf
-			break
+		if [ "\$n" == "coretemp" ]; then
+				sed -i -e "76s/hwmon [0-9]/hwmon \$nn/" /home/$username/.config/conky/conky.conf
+				break
+		fi
+	done
+
+	conky &
+	EOF
+
+	cat <<- EOF >> "/mnt/home/$username/.bash_profile"
+
+	if [ -z "\${DISPLAY}" ] && [ "\${XDG_VTNR}" -eq 1 ]; then
+	exec startx
 	fi
-done
+	EOF
 
-conky &
-EOF
+	cat <<- EOF >> "/mnt/home/$username/.xinitrc"
 
-chmod +x "/mnt/home/$username/.xinitp2"
-chmod +x "/mnt/home/$username/.firstsetup"
+		export GTK2_RC_FILES="\$HOME/.gtkrc-2.0"
+
+		nm-applet &
+		/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1 &
+		touchegg &
+		~/.xinitp2 &
+		~/.firstsetup &
+		exec startxfce4
+	EOF
+
+	mkdir -p /mnt/etc/systemd/system/getty@tty1.service.d
+	cat <<- EOF > "/mnt/etc/systemd/system/getty@tty1.service.d/override.conf"
+	[Service]
+	ExecStart=
+	ExecStart=-/usr/bin/agetty --autologin $username --noclear %I $TERM
+	EOF
+
+	chmod +x "/mnt/home/$username/.xinitp2"
+	chmod +x "/mnt/home/$username/.firstsetup"
+fi
 
 cat <<- EOF >> "/mnt/home/$username/.bashrc"
 
@@ -187,32 +243,6 @@ cat <<- EOF >> "/mnt/home/$username/.bashrc"
 	export LIBVA_DRIVER_NAME=$vaapi
 EOF
 
-cat <<- EOF >> "/mnt/home/$username/.bash_profile"
-
-if [ -z "\${DISPLAY}" ] && [ "\${XDG_VTNR}" -eq 1 ]; then
-  exec startx
-fi
-EOF
-
-cat <<- EOF >> "/mnt/home/$username/.xinitrc"
-
-	export GTK2_RC_FILES="\$HOME/.gtkrc-2.0"
-
-	nm-applet &
-	/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1 &
-	touchegg &
-	~/.xinitp2 &
-	~/.firstsetup &
-	exec startxfce4
-EOF
-
-mkdir -p /mnt/etc/systemd/system/getty@tty1.service.d
-cat <<- EOF > "/mnt/etc/systemd/system/getty@tty1.service.d/override.conf"
-[Service]
-ExecStart=
-ExecStart=-/usr/bin/agetty --autologin $username --noclear %I $TERM
-EOF
-
 # temp helper to install yay
 cat <<- EOF > "/mnt/home/$username/instyay"
 #!/bin/bash
@@ -235,18 +265,25 @@ rm "/mnt/home/$username/yay.tar.gz"
 rm "/mnt/home/$username/instyay"
 
 # add required packages from aur
-arch-chroot /mnt sudo -u $username yay -S --noconfirm papirus-icon-theme papirus-folders-git vimix-gtk-themes touchegg-git tlpui-git
-arch-chroot /mnt papirus-folders -C yaru --theme Papirus
+if [ "$instxfce" == "true" ]; then
+	arch-chroot /mnt sudo -u $username yay -S --noconfirm papirus-icon-theme papirus-folders-git vimix-gtk-themes touchegg-git tlpui-git
+	arch-chroot /mnt papirus-folders -C yaru --theme Papirus
+else
+	arch-chroot /mnt sudo -u $username yay -S --noconfirm touchegg-git tlpui-git
+fi
 
 arch-chroot /mnt systemctl mask systemd-rfkill.socket
 arch-chroot /mnt systemctl mask systemd-rfkill.service
 arch-chroot /mnt systemctl enable tlp
-arch-chroot /mnt systemctl enable NetworkManager
 arch-chroot /mnt systemctl enable bluetooth
 arch-chroot /mnt systemctl enable fstrim.timer
 arch-chroot /mnt systemctl enable touchegg
 arch-chroot /mnt systemctl disable dbus
 arch-chroot /mnt systemctl --global enable dbus-broker
+
+if [ "$instxfce" == "true" ]; then
+	arch-chroot /mnt systemctl enable NetworkManager
+fi
 
 case $device in
 	"G1619-01") # max 20
@@ -263,6 +300,7 @@ case $device in
 		sed -i "s/'CPU Cache' 0/'CPU Cache' -50/" /mnt/etc/intel-undervolt.conf
 		sed -i "s/'System Agent' 0/'System Agent' -20/" /mnt/etc/intel-undervolt.conf
 		sed -i "s/interval 5000/interval 35000/" /mnt/etc/intel-undervolt.conf
+		rm /mnt/etc/X11/xorg.conf.d/99-gxtp7385-xplayer.conf
 		;;
 	"G1618-03"|"G1619-03") # win3 | max 21
 		yes | arch-chroot /mnt pacman -S wmaxw3-tgl-tkg wmaxw3-tgl-tkg-headers mesa-wmax21w3-tkg-git lib32-mesa-wmax21w3-tkg-git
@@ -280,12 +318,14 @@ case $device in
 		echo "options snd-intel-dspcfg dsp_driver=1" > /mnt/etc/modprobe.d/alsa-base.conf
 		echo "export VDPAU_DRIVER=va_gl" >> "/mnt/home/$username/.bashrc"
 		sed -i 's/eDP1/DSI1/' /mnt/etc/X11/xorg.conf.d/30-monitor.conf
+		rm /mnt/etc/X11/xorg.conf.d/99-gxtp7385-xplayer.conf
 		;;
 	"G1619-02") # max 21 amd - thanks AhmadJSabt
 		yes | arch-chroot /mnt pacman -S wmax21amd-tkg wmax21amd-tkg-headers mesa-wmax21amd-tkg-git lib32-mesa-wmax21amd-tkg-git gpd-winmax-mutekey-fix igb-dkms
 
 		echo -e "\n[wmax21amdemus]\nSigLevel = Never\nServer = https://github.com/A-w-x/GPD-Linux-AUR-repo/releases/download/wmax21amdemus" >> /mnt/etc/pacman.conf
 		sed -i 's/--daemon/--daemon 6 31/' /mnt/lib/systemd/system/touchegg.service
+		rm /mnt/etc/X11/xorg.conf.d/99-gxtp7385-xplayer.conf
 		;;
 	*)
 		if [ "$cpuv" == "Int" ]; then
@@ -295,6 +335,9 @@ case $device in
 			arch-chroot /mnt pacman -S --noconfirm mesa vulkan-radeon libva-mesa-driver mesa-vdpau lib32-mesa \
 				lib32-libva-mesa-driver lib32-vulkan-mesa-layers vulkan-mesa-layers lib32-mesa-vdpau
 		fi
+
+		rm /mnt/etc/X11/xorg.conf.d/98-goodix.conf
+		rm /mnt/etc/X11/xorg.conf.d/99-gxtp7385-xplayer.conf
 		;;
 esac
 

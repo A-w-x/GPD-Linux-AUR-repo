@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/img">
+        <file>deskprev.png</file>
+    </qresource>
+</RCC>

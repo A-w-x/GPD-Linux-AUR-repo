@@ -53,6 +53,7 @@ AwxLinuxInstaller::AwxLinuxInstaller(QWidget *parent)
     } else {
         ui->tabWidget->removeTab(ui->tabWidget->indexOf(ui->partitionTab));
         ui->tabWidget->removeTab(ui->tabWidget->indexOf(ui->userSetTab));
+        ui->tabWidget->removeTab(ui->tabWidget->indexOf(ui->deskTab));
         ui->tabWidget->removeTab(ui->tabWidget->indexOf(ui->bootloaderTab));
         ui->tabWidget->removeTab(ui->tabWidget->indexOf(ui->emupcinfoTab));
 
@@ -61,8 +62,7 @@ AwxLinuxInstaller::AwxLinuxInstaller(QWidget *parent)
     }
 }
 
-AwxLinuxInstaller::~AwxLinuxInstaller()
-{
+AwxLinuxInstaller::~AwxLinuxInstaller() {
     delete ui;
 }
 
@@ -73,6 +73,7 @@ void AwxLinuxInstaller::refreshPartitionsList() {
     ui->fdiskOut->setText("loading..");
     ui->efiPartCombo->setEnabled(false);
     ui->awxPartCombo->setEnabled(false);
+    ui->homePartCombo->setEnabled(false);
     ui->refreshPartListBtn->setEnabled(false);
 
     utls.runFdiskAsync();
@@ -81,18 +82,22 @@ void AwxLinuxInstaller::refreshPartitionsList() {
 }
 
 void AwxLinuxInstaller::fillRegionCombo() {
-    for (const QString &z: zonesList.keys())
+    QList<QString> zlist = zonesList.keys();
+
+    for (const QString &z: zlist)
         ui->regionCombo->addItem(z);
 }
 
 void AwxLinuxInstaller::initEmulatorsTab() {
+    QList<QString> emuOptList = emulatorsOptMap.keys();
+    QList<QString> emuStdList = emulatorsStdMap.keys();
     QGridLayout *l;
     int row = 0;
     int col = 0;
 
     l = (QGridLayout *)ui->emuOptsGroup->layout();
 
-    for (const QString &emu: emulatorsOptMap.keys()) {
+    for (const QString &emu: emuOptList) {
         QCheckBox *ckb = new QCheckBox(ui->emuTab);
 
         ckb->setText(emu);
@@ -106,7 +111,7 @@ void AwxLinuxInstaller::initEmulatorsTab() {
     row = col = 0;
     l = (QGridLayout *)ui->emuStdGroup->layout();
 
-    for (const QString &emu: emulatorsStdMap.keys()) {
+    for (const QString &emu: emuStdList) {
         QCheckBox *ckb = new QCheckBox(ui->emuTab);
 
         ckb->setText(emu);
@@ -119,11 +124,12 @@ void AwxLinuxInstaller::initEmulatorsTab() {
 }
 
 void AwxLinuxInstaller::initPcGamesTab() {
+    QList<QString> pcList = pcGamesMap.keys();
     QGridLayout *l = (QGridLayout *)ui->pcgamesGroup->layout();
     int row = 0;
     int col = 0;
 
-    for (const QString &pc: pcGamesMap.keys()) {
+    for (const QString &pc: pcList) {
         QCheckBox *ckb = new QCheckBox(ui->emuTab);
 
         ckb->setText(pc);
@@ -137,7 +143,8 @@ void AwxLinuxInstaller::initPcGamesTab() {
 
 void AwxLinuxInstaller::genInstallScript(const QString &usrName, const QString &deviceName,
                                          const QString &timezone, const QString &efiPart,
-                                         const QString &awxPart, qint32 swapSz, bool instGrub,
+                                         const QString &awxPart, const QString &homePart,
+                                         qint32 swapSz, bool installXfce, bool instGrub,
                                          const QString &upwd, const QString &rpwd) {
     QFile instScript {"/root/awxinstall.part"};
     QFile finstScript {"/usr/local/bin/awxinstall"};
@@ -157,6 +164,7 @@ void AwxLinuxInstaller::genInstallScript(const QString &usrName, const QString &
 
     fstream << "#!/bin/bash\n" <<
                "awxpart=\"" << awxPart << "\"\n" <<
+               "homepart=\"" << homePart << "\"\n" <<
                "efipart=\"" << efiPart << "\"\n" <<
                "timezone=\"" << timezone << "\"\n" <<
                "deviceName='" << deviceName << "'\n" <<
@@ -164,6 +172,7 @@ void AwxLinuxInstaller::genInstallScript(const QString &usrName, const QString &
                "upwd='" << upwd << "'\n" <<
                "rpwd='" << rpwd << "'\n" <<
                "swap=" << swapSz << "\n" <<
+               "instxfce=\"" << (installXfce ? "true":"false") << "\"\n" <<
                "instGrub=\"" << (instGrub ? "true":"false") << "\"\n" <<
                instScript.readAll();
 
@@ -182,9 +191,11 @@ void AwxLinuxInstaller::installOS() {
     QString zone = ui->zoneCombo->currentText();
     QString efiPart = ui->efiPartCombo->currentText();
     QString awxPart = ui->awxPartCombo->currentText();
+    QString homePart = ui->homePartCombo->currentText();
     QString usrname = ui->usrname->text().trimmed();
     QString deviceName = ui->devicename->text().simplified().remove(' ');
     qint32 swapSz = ui->swapFileSize->value();
+    bool instXfce = ui->instxfceChk->isChecked();
     qint32 instGrub = ui->instGrubCombo->currentIndex();
     QMessageBox::StandardButton msgBoxRet;
     QString summaryStr;
@@ -235,9 +246,11 @@ void AwxLinuxInstaller::installOS() {
     summary << "Summary\n\n\n" <<
                "EFI partition (mounted as /boot/efi): " << efiPart << "\n\n" <<
                "AwxLinux install partition: " << awxPart << "\n\n" <<
+               "AwxLinux home partition: " << (homePart.isEmpty() ? "Skip":homePart ) << "\n\n" <<
                "Username: " << usrname << "\n\n" <<
                "Device name: " << deviceName << "\n\n" <<
                "Timezone: " << timezone << "\n\n" <<
+               "Install AwxLinux Xfce: " << (instXfce ? "Yes":"No") << "\n\n" <<
                "Install GRUB: " << (instGrub == 0 ? "Yes":"No") << "\n\n";
 
     if (swapSz > 0)
@@ -250,7 +263,7 @@ void AwxLinuxInstaller::installOS() {
     if (msgBoxRet == QMessageBox::No)
         return;
 
-    genInstallScript(usrname, deviceName, timezone, efiPart, awxPart, swapSz, instGrub == 0, encUpwd, encRpwd);
+    genInstallScript(usrname, deviceName, timezone, efiPart, awxPart, homePart, swapSz, instXfce, instGrub == 0, encUpwd, encRpwd);
 
     instProc.start("lxterminal", QStringList() << "-e" << "awxinstall");
 }
@@ -274,21 +287,21 @@ void AwxLinuxInstaller::installApps() {
     for (const QWidget *w: emuOptList) {
         QCheckBox *ckb = (QCheckBox *)w;
 
-        if (ckb->checkState() == Qt::Checked)
+        if (ckb->isChecked())
             emusStrList << w->objectName();
     }
 
     for (const QWidget *w: emuStdList) {
         QCheckBox *ckb = (QCheckBox *)w;
 
-        if (ckb->checkState() == Qt::Checked)
+        if (ckb->isChecked())
             emusStrList << w->objectName();
     }
 
     for (const QWidget *w: pcgamesList) {
         QCheckBox *ckb = (QCheckBox *)w;
 
-        if (ckb->checkState() == Qt::Checked)
+        if (ckb->isChecked())
             pcGamesStrList << w->objectName();
     }
 
@@ -325,7 +338,7 @@ void AwxLinuxInstaller::installApps() {
         }
 
         if (emusStrList.contains("ryu")) {
-            fstream << "ryuV=\"1.1.24\"\n" <<
+            fstream << "ryuV=\"1.1.64\"\n" <<
                        "rm -r /opt/ryujinx\n" <<
                        "wget \"https://github.com/Ryujinx/release-channel-master/releases/download/$ryuV/ryujinx-$ryuV-linux_x64.tar.gz\"\n" <<
                        "tar -xvf \"ryujinx-$ryuV-linux_x64.tar.gz\"\n" <<
@@ -354,15 +367,15 @@ void AwxLinuxInstaller::installApps() {
         }
     }
 
-    if (ui->runSteamBootChk->checkState() == Qt::Checked)
+    if (ui->runSteamBootChk->isChecked())
         fstream << "echo \"steam -bigpicture &\" >> \"$HOME/.xinitp2\"\n";
 
-    if (ui->instMangoChk->checkState() == Qt::Checked) {
+    if (ui->instMangoChk->isChecked()) {
         fstream << "sudo pacman -S --noconfirm vulkan-tools mesa-demos\n" <<
                    "yay -S --noconfirm vkbasalt goverlay-bin lib32-mangohud\n";
     }
 
-    if (ui->xbcontrChk->checkState() == Qt::Checked) { // add some tweaks from ChimeraOS
+    if (ui->xbcontrChk->isChecked()) { // add some tweaks from ChimeraOS
         fstream << "yay -S --noconfirm xpadneo-dkms-git\n" <<
                    "sudo sed -i 's/#MinConnectionInterval=/MinConnectionInterval=7/' /etc/bluetooth/main.conf\n" <<
                    "sudo sed -i 's/#MaxConnectionInterval=/MaxConnectionInterval=9/' /etc/bluetooth/main.conf\n" <<
@@ -388,17 +401,21 @@ void AwxLinuxInstaller::onProcessFinished(const QString &output) {
     ui->fdiskOut->setText(output);
     ui->efiPartCombo->clear();
     ui->awxPartCombo->clear();
+    ui->homePartCombo->clear();
 
     ui->efiPartCombo->addItem("");
     ui->awxPartCombo->addItem("");
+    ui->homePartCombo->addItem("");
 
     for (const QString &part: partitions) {
         ui->efiPartCombo->addItem(part);
         ui->awxPartCombo->addItem(part);
+        ui->homePartCombo->addItem(part);
     }
 
     ui->efiPartCombo->setEnabled(true);
     ui->awxPartCombo->setEnabled(true);
+    ui->homePartCombo->setEnabled(true);
     ui->refreshPartListBtn->setEnabled(true);
 
     processRunning = false;
