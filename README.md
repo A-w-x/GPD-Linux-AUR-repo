@@ -4,7 +4,6 @@ AUR repo with packages optimized for GPD devices.
 Supported devices:
  * _GPD Win Max 2020_
  * _GPD Win Max 2021 (Intel)_
- * _GPD Win Max 2021 (AMD)_
  * _GPD Win 3_
 
 This repo contains symlinks, downloading this as zip will break them, you must clone it.

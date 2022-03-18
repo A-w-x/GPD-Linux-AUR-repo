@@ -320,13 +320,6 @@ case $device in
 		sed -i 's/eDP1/DSI1/' /mnt/etc/X11/xorg.conf.d/30-monitor.conf
 		rm /mnt/etc/X11/xorg.conf.d/99-gxtp7385-xplayer.conf
 		;;
-	"G1619-02") # max 21 amd - thanks AhmadJSabt
-		yes | arch-chroot /mnt pacman -S wmax21amd-tkg wmax21amd-tkg-headers mesa-wmax21amd-tkg-git lib32-mesa-wmax21amd-tkg-git gpd-winmax-mutekey-fix igb-dkms
-
-		echo -e "\n[wmax21amdemus]\nSigLevel = Never\nServer = https://github.com/A-w-x/GPD-Linux-AUR-repo/releases/download/wmax21amdemus" >> /mnt/etc/pacman.conf
-		sed -i 's/--daemon/--daemon 6 31/' /mnt/lib/systemd/system/touchegg.service
-		rm /mnt/etc/X11/xorg.conf.d/99-gxtp7385-xplayer.conf
-		;;
 	*)
 		if [ "$cpuv" == "Int" ]; then
 			arch-chroot /mnt pacman -S --noconfirm mesa vulkan-intel lib32-mesa lib32-vulkan-intel vulkan-mesa-layers \
@@ -353,7 +346,7 @@ if [ $swap -gt 0]; then
 	chmod 600 /mnt/swapfile
 	mkswap /mnt/swapfile
 	echo "/swapfile none swap defaults 0 0" >> /mnt/etc/fstab
-	echo "vm.swappiness=0" > /mnt/etc/sysctl.d/90-swapfile.conf
+	echo "vm.swappiness=100" > /mnt/etc/sysctl.d/90-swapfile.conf
 fi
 
 if [ "$instGrub" == "true" ]; then

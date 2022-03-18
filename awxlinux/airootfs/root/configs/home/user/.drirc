@@ -10,5 +10,11 @@
 		<application name="mpv" executable="mpv">
 			<option name="vblank_mode" value="3" />
 		</application>
+		<application name="yuzu" executable="yuzu">
+			<option name="force_integer_tex_nearest" value="true" />
+		</application>
+		<application name="Ryujinx" executable="Ryujinx">
+			<option name="force_integer_tex_nearest" value="true" />
+		</application>
 	</device>
 </driconf>
