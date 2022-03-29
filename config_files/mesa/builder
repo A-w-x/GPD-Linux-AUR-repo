@@ -15,7 +15,9 @@ galliumd=""
 vulkand=""
 flags=""
 commit=""
-prs="13294 14964 15275 15420 15324 15441 15424 15400"
+prs="13294 14964 15275 15324 15561"
+
+ccache -C
 
 if [ -f "/etc/omakepkg.conf" ]; then
 	sudo cp /etc/omakepkg.conf /etc/makepkg.conf
@@ -90,7 +92,7 @@ sed -i "s/MESACOMMIT/$commit/" customization.cfg
 sed -i "s/MESAPRS/$prs/" customization.cfg
 sed -i "s/mesa-tkg/$pkgname/g" PKGBUILD
 
-ccache -C
+#ccache -C
 makepkg -s
 
 sudo cp /etc/omakepkg.conf /etc/makepkg.conf

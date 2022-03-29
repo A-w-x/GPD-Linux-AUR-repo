@@ -371,7 +371,7 @@ void AwxLinuxInstaller::installApps() {
         fstream << "echo \"steam -bigpicture &\" >> \"$HOME/.xinitp2\"\n";
 
     if (ui->instMangoChk->isChecked()) {
-        fstream << "sudo pacman -S --noconfirm vulkan-tools mesa-demos\n" <<
+        fstream << "sudo pacman -S --noconfirm vulkan-tools mesa-demos breeze\n" <<
                    "yay -S --noconfirm vkbasalt goverlay-bin lib32-mangohud\n";
     }
 

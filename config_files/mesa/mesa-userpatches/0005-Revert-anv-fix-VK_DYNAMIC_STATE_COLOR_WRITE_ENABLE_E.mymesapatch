@@ -1,0 +1,396 @@
+From 8b0cfa2a66276e71e6b69b9de906cb5d17b15415 Mon Sep 17 00:00:00 2001
+From: auser <nor@nore.com>
+Date: Sun, 27 Mar 2022 15:11:30 +0000
+Subject: [PATCH 5/7] Revert "anv: fix VK_DYNAMIC_STATE_COLOR_WRITE_ENABLE_EXT
+ state"
+
+This reverts commit a4f502de3228ec37dfcaa38225077ec3709d74ea.
+---
+ src/intel/vulkan/anv_cmd_buffer.c  |  13 +---
+ src/intel/vulkan/anv_pipeline.c    | 102 +++++++++++++++++++++--------
+ src/intel/vulkan/genX_pipeline.c   |  19 ++----
+ src/intel/vulkan/gfx7_cmd_buffer.c |  52 ++++++++++-----
+ src/intel/vulkan/gfx8_cmd_buffer.c |  59 ++++++++++-------
+ 5 files changed, 153 insertions(+), 92 deletions(-)
+
+diff --git a/src/intel/vulkan/anv_cmd_buffer.c b/src/intel/vulkan/anv_cmd_buffer.c
+index fc0e10c3a7a..bc33816156e 100644
+--- a/src/intel/vulkan/anv_cmd_buffer.c
++++ b/src/intel/vulkan/anv_cmd_buffer.c
+@@ -1600,16 +1600,9 @@ void anv_CmdSetColorWriteEnableEXT(
+ 
+    assert(attachmentCount <= MAX_RTS);
+ 
+-   /* Keep the existing values outside the color attachments count of the
+-    * current pipeline.
+-    */
+-   uint8_t color_writes = cmd_buffer->state.gfx.dynamic.color_writes;
+-   for (uint32_t i = 0; i < attachmentCount; i++) {
+-      if (pColorWriteEnables[i])
+-         color_writes |= BITFIELD_BIT(i);
+-      else
+-         color_writes &= ~BITFIELD_BIT(i);
+-   }
++   uint8_t color_writes = 0;
++   for (uint32_t i = 0; i < attachmentCount; i++)
++      color_writes |= pColorWriteEnables[i] ? (1 << i) : 0;
+ 
+    if (cmd_buffer->state.gfx.dynamic.color_writes != color_writes) {
+       cmd_buffer->state.gfx.dynamic.color_writes = color_writes;
+diff --git a/src/intel/vulkan/anv_pipeline.c b/src/intel/vulkan/anv_pipeline.c
+index 352eaa352ad..9b95756aa9c 100644
+--- a/src/intel/vulkan/anv_pipeline.c
++++ b/src/intel/vulkan/anv_pipeline.c
+@@ -487,9 +487,12 @@ populate_wm_prog_key(const struct anv_graphics_pipeline *pipeline,
+    key->ignore_sample_mask_out = false;
+ 
+    assert(rendering_info->colorAttachmentCount <= MAX_RTS);
+-   /* Consider all inputs as valid until look at the NIR variables. */
+-   key->color_outputs_valid = (1u << MAX_RTS) - 1;
+-   key->nr_color_regions = MAX_RTS;
++   for (uint32_t i = 0; i < rendering_info->colorAttachmentCount; i++) {
++      if (rendering_info->pColorAttachmentFormats[i] != VK_FORMAT_UNDEFINED)
++         key->color_outputs_valid |= (1 << i);
++   }
++
++   key->nr_color_regions = rendering_info->colorAttachmentCount;
+ 
+    /* To reduce possible shader recompilations we would need to know if
+     * there is a SampleMask output variable to compute if we should emit
+@@ -1116,26 +1119,6 @@ static void
+ anv_pipeline_link_fs(const struct brw_compiler *compiler,
+                      struct anv_pipeline_stage *stage)
+ {
+-   /* Initially the valid outputs value is set to all possible render targets
+-    * valid (see populate_wm_prog_key()), before we look at the shader
+-    * variables. Here we look at the output variables of the shader an compute
+-    * a correct number of render target outputs.
+-    */
+-   stage->key.wm.color_outputs_valid = 0;
+-   nir_foreach_shader_out_variable_safe(var, stage->nir) {
+-      if (var->data.location < FRAG_RESULT_DATA0)
+-         continue;
+-
+-      const unsigned rt = var->data.location - FRAG_RESULT_DATA0;
+-      const unsigned array_len =
+-         glsl_type_is_array(var->type) ? glsl_get_length(var->type) : 1;
+-      assert(rt + array_len <= MAX_RTS);
+-
+-      stage->key.wm.color_outputs_valid |= BITFIELD_RANGE(rt, array_len);
+-   }
+-   stage->key.wm.nr_color_regions =
+-      util_last_bit(stage->key.wm.color_outputs_valid);
+-
+    unsigned num_rt_bindings;
+    struct anv_pipeline_binding rt_bindings[MAX_RTS];
+    if (stage->key.wm.nr_color_regions > 0) {
+@@ -1169,6 +1152,71 @@ anv_pipeline_link_fs(const struct brw_compiler *compiler,
+    typed_memcpy(stage->bind_map.surface_to_descriptor,
+                 rt_bindings, num_rt_bindings);
+    stage->bind_map.surface_count += num_rt_bindings;
++
++   /* Now that we've set up the color attachments, we can go through and
++    * eliminate any shader outputs that map to VK_ATTACHMENT_UNUSED in the
++    * hopes that dead code can clean them up in this and any earlier shader
++    * stages.
++    */
++   nir_function_impl *impl = nir_shader_get_entrypoint(stage->nir);
++   bool deleted_output = false;
++   nir_foreach_shader_out_variable_safe(var, stage->nir) {
++      /* TODO: We don't delete depth/stencil writes.  We probably could if the
++       * subpass doesn't have a depth/stencil attachment.
++       */
++      if (var->data.location < FRAG_RESULT_DATA0)
++         continue;
++
++      const unsigned rt = var->data.location - FRAG_RESULT_DATA0;
++
++      /* If this is the RT at location 0 and we have alpha to coverage
++       * enabled we still need that write because it will affect the coverage
++       * mask even if it's never written to a color target.
++       */
++      if (rt == 0 && stage->key.wm.alpha_to_coverage)
++         continue;
++
++      const unsigned array_len =
++         glsl_type_is_array(var->type) ? glsl_get_length(var->type) : 1;
++      assert(rt + array_len <= MAX_RTS);
++
++      if (rt >= MAX_RTS || !(stage->key.wm.color_outputs_valid &
++                             BITFIELD_RANGE(rt, array_len))) {
++         deleted_output = true;
++         var->data.mode = nir_var_function_temp;
++         exec_node_remove(&var->node);
++         exec_list_push_tail(&impl->locals, &var->node);
++      }
++   }
++
++   if (deleted_output)
++      nir_fixup_deref_modes(stage->nir);
++
++   /* Initially the valid outputs value is based off the renderpass color
++    * attachments (see populate_wm_prog_key()), now that we've potentially
++    * deleted variables that map to unused attachments, we need to update the
++    * valid outputs for the backend compiler based on what output variables
++    * are actually used. */
++   stage->key.wm.color_outputs_valid = 0;
++   nir_foreach_shader_out_variable_safe(var, stage->nir) {
++      if (var->data.location < FRAG_RESULT_DATA0)
++         continue;
++
++      const unsigned rt = var->data.location - FRAG_RESULT_DATA0;
++      const unsigned array_len =
++         glsl_type_is_array(var->type) ? glsl_get_length(var->type) : 1;
++      assert(rt + array_len <= MAX_RTS);
++
++      stage->key.wm.color_outputs_valid |= BITFIELD_RANGE(rt, array_len);
++   }
++
++   /* We stored the number of subpass color attachments in nr_color_regions
++    * when calculating the key for caching.  Now that we've computed the bind
++    * map, we can reduce this to the actual max before we go into the back-end
++    * compiler.
++    */
++   stage->key.wm.nr_color_regions =
++      util_last_bit(stage->key.wm.color_outputs_valid);
+ }
+ 
+ static void
+@@ -2320,12 +2368,10 @@ copy_non_dynamic_state(struct anv_graphics_pipeline *pipeline,
+                                  PIPELINE_COLOR_WRITE_CREATE_INFO_EXT);
+ 
+          if (color_write_info) {
+-            dynamic->color_writes = (1u << MAX_RTS) - 1;
++            dynamic->color_writes = 0;
+             for (uint32_t i = 0; i < color_write_info->attachmentCount; i++) {
+-               if (color_write_info->pColorWriteEnables[i])
+-                  dynamic->color_writes |= BITFIELD_BIT(i);
+-               else
+-                  dynamic->color_writes &= ~BITFIELD_BIT(i);
++               dynamic->color_writes |=
++                  color_write_info->pColorWriteEnables[i] ? (1u << i) : 0;
+             }
+          }
+       }
+diff --git a/src/intel/vulkan/genX_pipeline.c b/src/intel/vulkan/genX_pipeline.c
+index a1bccf9dc00..a78bc3007c9 100644
+--- a/src/intel/vulkan/genX_pipeline.c
++++ b/src/intel/vulkan/genX_pipeline.c
+@@ -1434,18 +1434,10 @@ emit_cb_state(struct anv_graphics_pipeline *pipeline,
+          .SourceAlphaBlendFactor = vk_to_intel_blend[a->srcAlphaBlendFactor],
+          .DestinationAlphaBlendFactor = vk_to_intel_blend[a->dstAlphaBlendFactor],
+          .AlphaBlendFunction = vk_to_intel_blend_op[a->alphaBlendOp],
+-         .WriteDisableAlpha =
+-            (dynamic_states & ANV_CMD_DIRTY_DYNAMIC_COLOR_BLEND_STATE) == 0 &&
+-            !(a->colorWriteMask & VK_COLOR_COMPONENT_A_BIT),
+-         .WriteDisableRed =
+-            (dynamic_states & ANV_CMD_DIRTY_DYNAMIC_COLOR_BLEND_STATE) == 0 &&
+-            !(a->colorWriteMask & VK_COLOR_COMPONENT_R_BIT),
+-         .WriteDisableGreen =
+-             (dynamic_states & ANV_CMD_DIRTY_DYNAMIC_COLOR_BLEND_STATE) == 0 &&
+-             !(a->colorWriteMask & VK_COLOR_COMPONENT_G_BIT),
+-         .WriteDisableBlue =
+-             (dynamic_states & ANV_CMD_DIRTY_DYNAMIC_COLOR_BLEND_STATE) == 0 &&
+-             !(a->colorWriteMask & VK_COLOR_COMPONENT_B_BIT),
++         .WriteDisableAlpha = !(a->colorWriteMask & VK_COLOR_COMPONENT_A_BIT),
++         .WriteDisableRed = !(a->colorWriteMask & VK_COLOR_COMPONENT_R_BIT),
++         .WriteDisableGreen = !(a->colorWriteMask & VK_COLOR_COMPONENT_G_BIT),
++         .WriteDisableBlue = !(a->colorWriteMask & VK_COLOR_COMPONENT_B_BIT),
+       };
+ 
+       if (a->srcColorBlendFactor != a->srcAlphaBlendFactor ||
+@@ -2261,8 +2253,7 @@ has_color_buffer_write_enabled(const struct anv_graphics_pipeline *pipeline,
+       if (binding->index == UINT32_MAX)
+          continue;
+ 
+-      if (blend && binding->index < blend->attachmentCount &&
+-          blend->pAttachments[binding->index].colorWriteMask != 0)
++      if (blend && blend->pAttachments[binding->index].colorWriteMask != 0)
+          return true;
+    }
+ 
+diff --git a/src/intel/vulkan/gfx7_cmd_buffer.c b/src/intel/vulkan/gfx7_cmd_buffer.c
+index 285d14066c4..5060362878e 100644
+--- a/src/intel/vulkan/gfx7_cmd_buffer.c
++++ b/src/intel/vulkan/gfx7_cmd_buffer.c
+@@ -283,6 +283,14 @@ genX(cmd_buffer_flush_dynamic_state)(struct anv_cmd_buffer *cmd_buffer)
+    if (anv_cmd_buffer_needs_dynamic_state(cmd_buffer,
+                                           ANV_CMD_DIRTY_DYNAMIC_COLOR_BLEND_STATE |
+                                           ANV_CMD_DIRTY_DYNAMIC_PRIMITIVE_TOPOLOGY)) {
++      const uint8_t color_writes = cmd_buffer->state.gfx.dynamic.color_writes;
++
++      bool dirty_color_blend =
++         cmd_buffer->state.gfx.dirty & ANV_CMD_DIRTY_DYNAMIC_COLOR_BLEND_STATE;
++
++      bool dirty_primitive_topology =
++         cmd_buffer->state.gfx.dirty & ANV_CMD_DIRTY_DYNAMIC_PRIMITIVE_TOPOLOGY;
++
+       VkPolygonMode dynamic_raster_mode;
+       VkPrimitiveTopology primitive_topology =
+          cmd_buffer->state.gfx.dynamic.primitive_topology;
+@@ -290,20 +298,21 @@ genX(cmd_buffer_flush_dynamic_state)(struct anv_cmd_buffer *cmd_buffer)
+          genX(raster_polygon_mode)(cmd_buffer->state.gfx.pipeline,
+                                    primitive_topology);
+ 
+-      const uint8_t color_writes = cmd_buffer->state.gfx.dynamic.color_writes;
+-      uint32_t dwords[GENX(3DSTATE_WM_length)];
+-      struct GENX(3DSTATE_WM) wm = {
+-         GENX(3DSTATE_WM_header),
+-
+-         .ThreadDispatchEnable = pipeline->force_fragment_thread_dispatch ||
+-                                 color_writes,
+-         .MultisampleRasterizationMode =
+-                                 genX(ms_rasterization_mode)(pipeline,
+-                                                             dynamic_raster_mode),
+-      };
+-      GENX(3DSTATE_WM_pack)(NULL, dwords, &wm);
++      if (dirty_color_blend || dirty_primitive_topology) {
++         uint32_t dwords[GENX(3DSTATE_WM_length)];
++         struct GENX(3DSTATE_WM) wm = {
++            GENX(3DSTATE_WM_header),
++
++            .ThreadDispatchEnable = pipeline->force_fragment_thread_dispatch ||
++                                    color_writes,
++            .MultisampleRasterizationMode =
++               genX(ms_rasterization_mode)(pipeline, dynamic_raster_mode),
++         };
++         GENX(3DSTATE_WM_pack)(NULL, dwords, &wm);
++
++         anv_batch_emit_merge(&cmd_buffer->batch, dwords, pipeline->gfx7.wm);
++      }
+ 
+-      anv_batch_emit_merge(&cmd_buffer->batch, dwords, pipeline->gfx7.wm);
+    }
+ 
+    if (anv_cmd_buffer_needs_dynamic_state(cmd_buffer,
+@@ -320,6 +329,14 @@ genX(cmd_buffer_flush_dynamic_state)(struct anv_cmd_buffer *cmd_buffer)
+       bool dirty_color_blend =
+          cmd_buffer->state.gfx.dirty & ANV_CMD_DIRTY_DYNAMIC_COLOR_BLEND_STATE;
+ 
++      /* Blend states of each RT */
++      uint32_t surface_count = 0;
++      struct anv_pipeline_bind_map *map;
++      if (anv_pipeline_has_stage(pipeline, MESA_SHADER_FRAGMENT)) {
++         map = &pipeline->shaders[MESA_SHADER_FRAGMENT]->bind_map;
++         surface_count = map->surface_count;
++      }
++
+       uint32_t blend_dws[GENX(BLEND_STATE_length) +
+                          MAX_RTS * GENX(BLEND_STATE_ENTRY_length)];
+       uint32_t *dws = blend_dws;
+@@ -331,9 +348,10 @@ genX(cmd_buffer_flush_dynamic_state)(struct anv_cmd_buffer *cmd_buffer)
+       bool dirty_logic_op =
+          cmd_buffer->state.gfx.dirty & ANV_CMD_DIRTY_DYNAMIC_LOGIC_OP;
+ 
+-      for (uint32_t i = 0; i < MAX_RTS; i++) {
+-         bool write_disabled = dirty_color_blend &&
+-            (color_writes & BITFIELD_BIT(i)) == 0;
++      for (uint32_t i = 0; i < surface_count; i++) {
++         struct anv_pipeline_binding *binding = &map->surface_to_descriptor[i];
++         bool write_disabled =
++            dirty_color_blend && (color_writes & (1u << binding->index)) == 0;
+          struct GENX(BLEND_STATE_ENTRY) entry = {
+             .WriteDisableAlpha = write_disabled,
+             .WriteDisableRed   = write_disabled,
+@@ -347,7 +365,7 @@ genX(cmd_buffer_flush_dynamic_state)(struct anv_cmd_buffer *cmd_buffer)
+       }
+ 
+       uint32_t num_dwords = GENX(BLEND_STATE_length) +
+-         GENX(BLEND_STATE_ENTRY_length) * MAX_RTS;
++         GENX(BLEND_STATE_ENTRY_length) * surface_count;
+ 
+       struct anv_state blend_states =
+          anv_cmd_buffer_merge_dynamic(cmd_buffer, blend_dws,
+diff --git a/src/intel/vulkan/gfx8_cmd_buffer.c b/src/intel/vulkan/gfx8_cmd_buffer.c
+index 5e165102011..154e192ef47 100644
+--- a/src/intel/vulkan/gfx8_cmd_buffer.c
++++ b/src/intel/vulkan/gfx8_cmd_buffer.c
+@@ -642,32 +642,43 @@ genX(cmd_buffer_flush_dynamic_state)(struct anv_cmd_buffer *cmd_buffer)
+                                           ANV_CMD_DIRTY_DYNAMIC_COLOR_BLEND_STATE |
+                                           ANV_CMD_DIRTY_DYNAMIC_LOGIC_OP)) {
+       const uint8_t color_writes = cmd_buffer->state.gfx.dynamic.color_writes;
+-
+       /* 3DSTATE_WM in the hope we can avoid spawning fragment shaders
+        * threads.
+        */
+-      uint32_t wm_dwords[GENX(3DSTATE_WM_length)];
+-      struct GENX(3DSTATE_WM) wm = {
+-         GENX(3DSTATE_WM_header),
++      bool dirty_color_blend =
++         cmd_buffer->state.gfx.dirty & ANV_CMD_DIRTY_DYNAMIC_COLOR_BLEND_STATE;
+ 
+-         .ForceThreadDispatchEnable = (pipeline->force_fragment_thread_dispatch ||
+-                                       !color_writes) ? ForceON : 0,
+-      };
+-      GENX(3DSTATE_WM_pack)(NULL, wm_dwords, &wm);
++      if (dirty_color_blend) {
++         uint32_t dwords[MAX2(GENX(3DSTATE_WM_length),
++                              GENX(3DSTATE_PS_BLEND_length))];
++         struct GENX(3DSTATE_WM) wm = {
++            GENX(3DSTATE_WM_header),
+ 
+-      anv_batch_emit_merge(&cmd_buffer->batch, wm_dwords, pipeline->gfx8.wm);
++            .ForceThreadDispatchEnable = (pipeline->force_fragment_thread_dispatch ||
++                                          !color_writes) ? ForceON : 0,
++         };
++         GENX(3DSTATE_WM_pack)(NULL, dwords, &wm);
+ 
+-      /* 3DSTATE_PS_BLEND to be consistent with the rest of the
+-       * BLEND_STATE_ENTRY.
+-       */
+-      uint32_t ps_blend_dwords[GENX(3DSTATE_PS_BLEND_length)];
+-      struct GENX(3DSTATE_PS_BLEND) ps_blend = {
+-         GENX(3DSTATE_PS_BLEND_header),
+-         .HasWriteableRT = color_writes != 0,
+-      };
+-      GENX(3DSTATE_PS_BLEND_pack)(NULL, ps_blend_dwords, &ps_blend);
+-      anv_batch_emit_merge(&cmd_buffer->batch, ps_blend_dwords,
+-                           pipeline->gfx8.ps_blend);
++         anv_batch_emit_merge(&cmd_buffer->batch, dwords, pipeline->gfx8.wm);
++
++         /* 3DSTATE_PS_BLEND to be consistent with the rest of the
++          * BLEND_STATE_ENTRY.
++          */
++         struct GENX(3DSTATE_PS_BLEND) ps_blend = {
++            GENX(3DSTATE_PS_BLEND_header),
++            .HasWriteableRT = color_writes != 0,
++         };
++         GENX(3DSTATE_PS_BLEND_pack)(NULL, dwords, &ps_blend);
++         anv_batch_emit_merge(&cmd_buffer->batch, dwords, pipeline->gfx8.ps_blend);
++      }
++
++      /* Blend states of each RT */
++      uint32_t surface_count = 0;
++      struct anv_pipeline_bind_map *map;
++      if (anv_pipeline_has_stage(pipeline, MESA_SHADER_FRAGMENT)) {
++         map = &pipeline->shaders[MESA_SHADER_FRAGMENT]->bind_map;
++         surface_count = map->surface_count;
++      }
+ 
+       uint32_t blend_dws[GENX(BLEND_STATE_length) +
+                          MAX_RTS * GENX(BLEND_STATE_ENTRY_length)];
+@@ -680,8 +691,10 @@ genX(cmd_buffer_flush_dynamic_state)(struct anv_cmd_buffer *cmd_buffer)
+       bool dirty_logic_op =
+          cmd_buffer->state.gfx.dirty & ANV_CMD_DIRTY_DYNAMIC_LOGIC_OP;
+ 
+-      for (uint32_t i = 0; i < MAX_RTS; i++) {
+-         bool write_disabled = (color_writes & BITFIELD_BIT(i)) == 0;
++      for (uint32_t i = 0; i < surface_count; i++) {
++         struct anv_pipeline_binding *binding = &map->surface_to_descriptor[i];
++         bool write_disabled =
++            dirty_color_blend && (color_writes & (1u << binding->index)) == 0;
+          struct GENX(BLEND_STATE_ENTRY) entry = {
+             .WriteDisableAlpha = write_disabled,
+             .WriteDisableRed   = write_disabled,
+@@ -695,7 +708,7 @@ genX(cmd_buffer_flush_dynamic_state)(struct anv_cmd_buffer *cmd_buffer)
+       }
+ 
+       uint32_t num_dwords = GENX(BLEND_STATE_length) +
+-         GENX(BLEND_STATE_ENTRY_length) * MAX_RTS;
++         GENX(BLEND_STATE_ENTRY_length) * surface_count;
+ 
+       struct anv_state blend_states =
+          anv_cmd_buffer_merge_dynamic(cmd_buffer, blend_dws,
+-- 
+2.35.1
+
