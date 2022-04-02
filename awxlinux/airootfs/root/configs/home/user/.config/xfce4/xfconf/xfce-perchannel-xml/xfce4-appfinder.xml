@@ -40,7 +40,7 @@
   </property>
   <property name="remember-category" type="bool" value="true"/>
   <property name="always-center" type="bool" value="true"/>
-  <property name="icon-view" type="bool" value="true"/>
+  <property name="icon-view" type="bool" value="false"/>
   <property name="item-icon-size" type="uint" value="4"/>
   <property name="category-icon-size" type="uint" value="3"/>
   <property name="last" type="empty">

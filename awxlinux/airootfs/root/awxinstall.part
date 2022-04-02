@@ -73,12 +73,12 @@ if [ "$instxfce" == "true" ]; then
 	arch-chroot /mnt pacman -S --noconfirm --overwrite \* base-devel \
 		xorg-server xf86-input-libinput xorg-xinput xorg-xinit \
 		pipewire pipewire-pulse pipewire-alsa gst-plugin-pipewire pavucontrol sof-firmware alsa-ucm-conf \
-		networkmanager network-manager-applet nm-connection-editor dhcpcd blueman \
+		networkmanager network-manager-applet nm-connection-editor dhcpcd blueman ntp \
 		polkit polkit-gnome xfce4-notifyd notification-daemon dbus-broker xdg-utils udisks2 util-linux \
 		tlp x86_energy_perf_policy ethtool \
 		thunar thunar-volman thunar-archive-plugin thunar-media-tags-plugin gvfs gvfs-mtp gvfs-smb file-roller tumbler ffmpegthumbnailer \
 		xfce4-battery-plugin xfce4-panel xfce4-pulseaudio-plugin xfce4-terminal xfce4-power-manager xfce4-settings xfce4-screenshooter \
-		xfwm4 xfce4-xkb-plugin xfce4-appfinder xfce4-session garcon exo conky \
+		xfce4-whiskermenu-plugin xfwm4 xfce4-xkb-plugin xfce4-appfinder xfce4-session garcon exo conky-linux-git \
 		nano git clang ccache git-lfs cmake gedit schedtool sed \
 		ttf-dejavu ttf-liberation noto-fonts-emoji noto-fonts adobe-source-han-sans-otc-fonts \
 		firefox mpv feh ntfs-3g os-prober wget curl \
@@ -266,7 +266,7 @@ rm "/mnt/home/$username/instyay"
 
 # add required packages from aur
 if [ "$instxfce" == "true" ]; then
-	arch-chroot /mnt sudo -u $username yay -S --noconfirm papirus-icon-theme papirus-folders-git vimix-gtk-themes touchegg-git tlpui-git
+	arch-chroot /mnt sudo -u $username yay -S --noconfirm papirus-icon-theme papirus-folders-git vimix-gtk-themes touchegg-git tlpui-git networkmanager-dispatcher-ntpd
 	arch-chroot /mnt papirus-folders -C yaru --theme Papirus
 else
 	arch-chroot /mnt sudo -u $username yay -S --noconfirm touchegg-git tlpui-git
