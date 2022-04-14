@@ -37,11 +37,10 @@ namespace AwxLinux {
         QList<QString> scanPartitions();
         void runFdiskAsync();
         QString make_salt(int length);
+        QString boolString(bool vbool) const;
 
     signals:
         void partitionsListScanDone(const QList<QString> &partitionsList);
         void processOutputReady(const QString &output);
     };
-
-
 }

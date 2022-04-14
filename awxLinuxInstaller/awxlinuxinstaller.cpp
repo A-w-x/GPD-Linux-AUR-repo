@@ -26,6 +26,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "./ui_awxlinuxinstaller.h"
 #include "zoneinfo.h"
 
+void AwxLinuxInstaller::initUI() {
+    ui->awxPartBtrfsOpts->setVisible(false);
+    ui->homePartBtrfsOpts->setVisible(false);
+    ui->homePartCombo->setEnabled(false);
+    ui->homePartFormatCombo->setEnabled(false);
+}
+
 void AwxLinuxInstaller::connectSignals() {
     QObject::connect(&utls, &AwxLinux::Utils::processOutputReady, this, &AwxLinuxInstaller::onProcessFinished);
     QObject::connect(ui->refreshPartListBtn, &QPushButton::clicked, this, &AwxLinuxInstaller::refreshPartitionsList);
@@ -40,6 +47,7 @@ AwxLinuxInstaller::AwxLinuxInstaller(QWidget *parent)
     , ui(new Ui::AwxLinuxInstaller)
 {
     ui->setupUi(this);
+    initUI();
     connectSignals();
     fillRegionCombo();
     ui->tabWidget->setCurrentIndex(0);
@@ -54,7 +62,6 @@ AwxLinuxInstaller::AwxLinuxInstaller(QWidget *parent)
         ui->tabWidget->removeTab(ui->tabWidget->indexOf(ui->partitionTab));
         ui->tabWidget->removeTab(ui->tabWidget->indexOf(ui->userSetTab));
         ui->tabWidget->removeTab(ui->tabWidget->indexOf(ui->deskTab));
-        ui->tabWidget->removeTab(ui->tabWidget->indexOf(ui->bootloaderTab));
         ui->tabWidget->removeTab(ui->tabWidget->indexOf(ui->emupcinfoTab));
 
         initEmulatorsTab();
@@ -91,9 +98,8 @@ void AwxLinuxInstaller::fillRegionCombo() {
 void AwxLinuxInstaller::initEmulatorsTab() {
     QList<QString> emuOptList = emulatorsOptMap.keys();
     QList<QString> emuStdList = emulatorsStdMap.keys();
+    int row = 0, col = 0;
     QGridLayout *l;
-    int row = 0;
-    int col = 0;
 
     l = (QGridLayout *)ui->emuOptsGroup->layout();
 
@@ -141,11 +147,69 @@ void AwxLinuxInstaller::initPcGamesTab() {
     }
 }
 
-void AwxLinuxInstaller::genInstallScript(const QString &usrName, const QString &deviceName,
-                                         const QString &timezone, const QString &efiPart,
-                                         const QString &awxPart, const QString &homePart,
-                                         qint32 swapSz, bool installXfce, bool instGrub,
-                                         const QString &upwd, const QString &rpwd) {
+QString AwxLinuxInstaller::getAwxBtrfsMountOpts() {
+    QStringList mountOpts;
+
+    if (ui->awxcomprChk->isChecked())
+        mountOpts << "compress=zstd";
+
+    if (!ui->awxcowChk->isChecked())
+        mountOpts << "nodatacow";
+
+    return mountOpts.join(',');
+}
+
+QString AwxLinuxInstaller::getHomeBtrfsMountOpts() {
+    QStringList mountOpts;
+
+    if (ui->homecomprChk->isChecked())
+        mountOpts << "compress=zstd";
+
+    if (!ui->homecowChk->isChecked())
+        mountOpts << "nodatacow";
+
+    return mountOpts.join(',');
+}
+
+QString AwxLinuxInstaller::genSummary(const installData &data) {
+    QString summaryStr;
+    QTextStream summary {&summaryStr};
+
+    summary << "Summary\n\n\n" <<
+               "EFI partition (mounted as /boot/efi): " << data.efiPart << "\n\n" <<
+               "AwxLinux partition: " << data.awxPart << "\n\n" <<
+               "AwxLinux partition format: " << (data.awxPartFormat.compare("-") == 0 ? "custom":data.awxPartFormat) << "\n\n";
+
+    if (data.awxPartFormat.compare("btrfs") == 0) {
+        summary << "AwxLinux partition compression: " << utls.boolString(ui->awxcomprChk->isChecked()) << "\n\n" <<
+                   "AwxLinux partition Copy On Write: " << utls.boolString(ui->awxcowChk->isChecked()) << "\n\n" ;
+    }
+
+    if (ui->homePartChk->isChecked()) {
+        summary << "Home partition: " << data.homePart << "\n\n" <<
+                   "Home partition format: " << data.homePartFormat << "\n\n";
+
+        if (data.homePartFormat.compare("btrfs") == 0) {
+            summary << "Home partition compression: " << utls.boolString(ui->homecomprChk->isChecked()) << "\n\n" <<
+                       "Home partition Copy On Write: " << utls.boolString(ui->homecowChk->isChecked()) << "\n\n" ;
+        }
+    }
+
+    summary << "Username: " << data.usrname << "\n\n" <<
+               "Device name: " << data.deviceName << "\n\n" <<
+               "Timezone: " << data.timezone << "\n\n" <<
+               "Install AwxLinux Xfce: " << data.instXfce << "\n\n" <<
+               "Install GRUB: " << data.instGrub << "\n\n";
+
+    if (data.swapSz > 0)
+        summary << "Swap size: " << data.swapSz << "GB\n\n";
+
+    summary << "Do you want to install AwxLinux now?\n\n";
+
+    return summary.readAll();
+}
+
+void AwxLinuxInstaller::genInstallScript(const installData &data) {
     QFile instScript {"/root/awxinstall.part"};
     QFile finstScript {"/usr/local/bin/awxinstall"};
     QTextStream fstream {&finstScript};
@@ -163,17 +227,21 @@ void AwxLinuxInstaller::genInstallScript(const QString &usrName, const QString &
     }
 
     fstream << "#!/bin/bash\n" <<
-               "awxpart=\"" << awxPart << "\"\n" <<
-               "homepart=\"" << homePart << "\"\n" <<
-               "efipart=\"" << efiPart << "\"\n" <<
-               "timezone=\"" << timezone << "\"\n" <<
-               "deviceName='" << deviceName << "'\n" <<
-               "username='" << usrName << "'\n" <<
-               "upwd='" << upwd << "'\n" <<
-               "rpwd='" << rpwd << "'\n" <<
-               "swap=" << swapSz << "\n" <<
-               "instxfce=\"" << (installXfce ? "true":"false") << "\"\n" <<
-               "instGrub=\"" << (instGrub ? "true":"false") << "\"\n" <<
+               "awxpart=\"" << data.awxPart << "\"\n" <<
+               "pformat=\"" << data.awxPartFormat << "\"\n" <<
+               "btrfsmopts=\"" << data.awxPartBtrfsOpts << "\"\n" <<
+               "homepart=\"" << data.homePart << "\"\n" <<
+               "homeformat=\"" << data.homePartFormat << "\"\n" <<
+               "homebtrfsmopts=\"" << data.homePartBtrfsOpts << "\"\n" <<
+               "efipart=\"" << data.efiPart << "\"\n" <<
+               "timezone=\"" << data.timezone << "\"\n" <<
+               "deviceName='" << data.deviceName << "'\n" <<
+               "username='" << data.usrname << "'\n" <<
+               "upwd='" << data.encUpwd << "'\n" <<
+               "rpwd='" << data.encRpwd << "'\n" <<
+               "swap=" << data.swapSz << "\n" <<
+               "instxfce=\"" << data.instXfce << "\"\n" <<
+               "instGrub=\"" << data.instGrub << "\"\n" <<
                instScript.readAll();
 
     instScript.close();
@@ -182,89 +250,77 @@ void AwxLinuxInstaller::genInstallScript(const QString &usrName, const QString &
     finstScript.setPermissions(QFile::ExeOwner | QFile::ReadGroup | QFile::ReadOther | QFile::ReadOwner | QFile::WriteOwner);
 }
 
+bool AwxLinuxInstaller::areValidSettings(const installData &data, const QString &upwd, const QString &ucpwd,
+                                         const QString &rpwd, const QString &rcpwd) {
+    QString err;
+
+    if (data.awxPart == "")
+        err = "AwxLinux device cannot be empty";
+    else if (data.efiPart == "")
+        err = "EFI device cannot be empty";
+    else if (ui->homePartChk->isChecked() && data.homePart == "")
+        err = "You enabled Home partition but no device is selected.";
+    else if (upwd == "" || ucpwd == "" || rpwd == "" || rcpwd == "")
+        err = "Password field cannot be empty";
+    else if (data.usrname == "")
+        err = "Username field cannot be empty";
+    else if (data.deviceName == "")
+        err = "Device name field cannot be empty";
+    else if (upwd.compare(ucpwd) != 0)
+        err = "User passwords do not match";
+    else if (rpwd.compare(rcpwd) != 0)
+        err = "Root passwords do not match";
+
+    if (!err.isEmpty()) {
+        QMessageBox::critical(this, "Invalid settings", err);
+        return false;
+    }
+
+    return true;
+}
+
 void AwxLinuxInstaller::installOS() {
+    installData data {
+        .region = ui->regionCombo->currentText(),
+        .zone = ui->zoneCombo->currentText(),
+        .efiPart = ui->efiPartCombo->currentText(),
+        .instGrub = utls.boolString(ui->instGrubCombo->currentIndex() == 0),
+        .awxPart = ui->awxPartCombo->currentText(),
+        .awxPartFormat = ui->awxPFormatCombo->currentIndex() == 2 ? "-":ui->awxPFormatCombo->currentText(),
+        .homePart = ui->homePartCombo->currentText(),
+        .homePartFormat = ui->homePartFormatCombo->currentIndex() == 0 ? "-":ui->homePartFormatCombo->currentText(),
+        .usrname = ui->usrname->text().trimmed(),
+        .deviceName = ui->devicename->text().simplified().remove(' '),
+        .swapSz = ui->swapFileSize->value(),
+        .instXfce = utls.boolString(ui->instxfceChk->isChecked()),
+    };
     QString upwd = ui->upwd->text();
     QString ucpwd = ui->ucpwd->text();
     QString rpwd = ui->rpwd->text();
     QString rcpwd = ui->rcpwd->text();
-    QString region = ui->regionCombo->currentText();
-    QString zone = ui->zoneCombo->currentText();
-    QString efiPart = ui->efiPartCombo->currentText();
-    QString awxPart = ui->awxPartCombo->currentText();
-    QString homePart = ui->homePartCombo->currentText();
-    QString usrname = ui->usrname->text().trimmed();
-    QString deviceName = ui->devicename->text().simplified().remove(' ');
-    qint32 swapSz = ui->swapFileSize->value();
-    bool instXfce = ui->instxfceChk->isChecked();
-    qint32 instGrub = ui->instGrubCombo->currentIndex();
     QMessageBox::StandardButton msgBoxRet;
-    QString summaryStr;
-    QString timezone;
-    QString encUpwd;
-    QString encRpwd;
-    QTextStream summary {&summaryStr};
 
-    if (awxPart == "") {
-        QMessageBox::critical(this, "Invalid install partition", "AwxLinux partition cannot be empty");
+
+    if (!areValidSettings(data, upwd, ucpwd, rpwd, rcpwd))
         return;
+
+    data.timezone = data.region + (data.zone != "" ? ("/" + data.zone) : "" );
+    data.encUpwd = QString::fromLatin1( crypt( upwd.toUtf8(), utls.make_salt( 16 ).toUtf8() ) );
+    data.encRpwd = QString::fromLatin1( crypt( rpwd.toUtf8(), utls.make_salt( 16 ).toUtf8() ) );
+
+    if (data.awxPartFormat.compare("btrfs") == 0)
+        data.awxPartBtrfsOpts = getAwxBtrfsMountOpts();
+
+    if (ui->homePartChk->isChecked()) {
+        if (data.homePartFormat.compare("btrfs") == 0)
+            data.homePartBtrfsOpts = getHomeBtrfsMountOpts();
     }
 
-    if (efiPart == "") {
-        QMessageBox::critical(this, "Invalid EFI partition", "EFI partition cannot be empty");
-        return;
-    }
-
-    if (upwd == "" || ucpwd == "" || rpwd == "" || rcpwd == "") {
-        QMessageBox::critical(this, "Invalid passwords", "Password field cannot be empty");
-        return;
-    }
-
-    if (usrname == "") {
-        QMessageBox::critical(this, "Invalid username", "Username field cannot be empty");
-        return;
-    }
-
-    if (deviceName == "") {
-        QMessageBox::critical(this, "Invalid device name", "Device name field cannot be empty");
-        return;
-    }
-
-    if (upwd.compare(ucpwd) != 0) {
-        QMessageBox::critical(this, "Invalid user password", "User passwords do not match");
-        return;
-    }
-
-    if (rpwd.compare(rcpwd) != 0) {
-        QMessageBox::critical(this, "Invalid root password", "Root passwords do not match");
-        return;
-    }
-
-    timezone = region + (zone != "" ? ("/" + zone) : "" );
-    encUpwd = QString::fromLatin1( crypt( upwd.toUtf8(), utls.make_salt( 16 ).toUtf8() ) );
-    encRpwd = QString::fromLatin1( crypt( rpwd.toUtf8(), utls.make_salt( 16 ).toUtf8() ) );
-
-    summary << "Summary\n\n\n" <<
-               "EFI partition (mounted as /boot/efi): " << efiPart << "\n\n" <<
-               "AwxLinux install partition: " << awxPart << "\n\n" <<
-               "AwxLinux home partition: " << (homePart.isEmpty() ? "Skip":homePart ) << "\n\n" <<
-               "Username: " << usrname << "\n\n" <<
-               "Device name: " << deviceName << "\n\n" <<
-               "Timezone: " << timezone << "\n\n" <<
-               "Install AwxLinux Xfce: " << (instXfce ? "Yes":"No") << "\n\n" <<
-               "Install GRUB: " << (instGrub == 0 ? "Yes":"No") << "\n\n";
-
-    if (swapSz > 0)
-        summary << "Swap size: " << swapSz << "GB\n\n";
-
-    summary << "Do you want to install AwxLinux now?\n\n";
-
-    msgBoxRet = QMessageBox::question(this, "Summary", summary.readAll(), QMessageBox::Yes | QMessageBox::No);
-
+    msgBoxRet = QMessageBox::question(this, "Summary", genSummary(data), QMessageBox::Yes | QMessageBox::No);
     if (msgBoxRet == QMessageBox::No)
         return;
 
-    genInstallScript(usrname, deviceName, timezone, efiPart, awxPart, homePart, swapSz, instXfce, instGrub == 0, encUpwd, encRpwd);
-
+    genInstallScript(data);
     instProc.start("lxterminal", QStringList() << "-e" << "awxinstall");
 }
 
@@ -338,7 +394,7 @@ void AwxLinuxInstaller::installApps() {
         }
 
         if (emusStrList.contains("ryu")) {
-            fstream << "ryuV=\"1.1.69\"\n" <<
+            fstream << "ryuV=\"1.1.102\"\n" <<
                        "rm -r /opt/ryujinx\n" <<
                        "wget \"https://github.com/Ryujinx/release-channel-master/releases/download/$ryuV/ryujinx-$ryuV-linux_x64.tar.gz\"\n" <<
                        "tar -xvf \"ryujinx-$ryuV-linux_x64.tar.gz\"\n" <<
@@ -415,7 +471,7 @@ void AwxLinuxInstaller::onProcessFinished(const QString &output) {
 
     ui->efiPartCombo->setEnabled(true);
     ui->awxPartCombo->setEnabled(true);
-    ui->homePartCombo->setEnabled(true);
+    ui->homePartCombo->setEnabled(ui->homePartChk->isChecked());
     ui->refreshPartListBtn->setEnabled(true);
 
     processRunning = false;
@@ -455,3 +511,31 @@ void AwxLinuxInstaller::onInstallBtnClicked() {
     else
         installApps();
 }
+
+void AwxLinuxInstaller::on_awxPFormatCombo_currentIndexChanged(int index) {
+    ui->awxPartBtrfsOpts->setVisible(index == 1);
+}
+
+void AwxLinuxInstaller::on_homePartChk_stateChanged(int arg1) {
+    ui->homePartCombo->setEnabled(arg1 == Qt::Checked);
+    ui->homePartFormatCombo->setEnabled(arg1 == Qt::Checked);
+}
+
+void AwxLinuxInstaller::on_homePartFormatCombo_currentIndexChanged(int index) {
+    ui->homePartBtrfsOpts->setVisible(index == 2);
+}
+
+void AwxLinuxInstaller::on_awxcowChk_stateChanged(int arg1) {
+    ui->awxcomprChk->setEnabled(arg1 == Qt::Checked);
+
+    if (ui->awxcomprChk->isChecked())
+        ui->awxcomprChk->setChecked(arg1 == Qt::Checked);
+}
+
+void AwxLinuxInstaller::on_homecowChk_stateChanged(int arg1) {
+    ui->homecomprChk->setEnabled(arg1 == Qt::Checked);
+
+    if (ui->homecomprChk->isChecked())
+        ui->homecomprChk->setChecked(arg1 == Qt::Checked);
+}
+

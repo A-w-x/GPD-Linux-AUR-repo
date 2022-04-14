@@ -20,7 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <QMainWindow>
 #include <QMessageBox>
-#include <QMap>
+#include <QHash>
 
 #include "utils.h"
 
@@ -37,6 +37,26 @@ public:
     ~AwxLinuxInstaller();
 
 private:
+    struct installData {
+        QString region;
+        QString zone;
+        QString efiPart;
+        QString instGrub;
+        QString awxPart;
+        QString awxPartFormat;
+        QString awxPartBtrfsOpts;
+        QString homePart;
+        QString homePartFormat;
+        QString homePartBtrfsOpts;
+        QString usrname;
+        QString deviceName;
+        qint32 swapSz;
+        QString instXfce;
+        QString timezone;
+        QString encUpwd;
+        QString encRpwd;
+    };
+
     Ui::AwxLinuxInstaller *ui;
     AwxLinux::Utils utls;
     QProcess gpartedProc;
@@ -44,7 +64,7 @@ private:
     bool processRunning = false;
     bool partitionsTabInit = false;
     bool isInstallISO = false;
-    QMap<QString, QString> emulatorsOptMap = {
+    QHash<QString, QString> emulatorsOptMap = {
         {"Citra-canary", "citra-canary-git"},
         {"Dolphin", "dolphin-emu-git dolphin-emu-nogui-git"},
         {"Duckstation", "duckstation-git"},
@@ -57,14 +77,14 @@ private:
         {"PCem", "pcem-git"},
         {"Melonds", "melonds-git"}
     };
-    QMap<QString, QString> emulatorsStdMap = {
+    QHash<QString, QString> emulatorsStdMap = {
         {"SCUMMVM", "scummvm"},
         {"Retroarch", "retroarch"},
         {"ryujinx", "ryu"},
         {"Cemu", "cemu"},
         {"Yuzu", "yuzu-mainline-bin"}
     };
-    QMap<QString, QString> pcGamesMap = {
+    QHash<QString, QString> pcGamesMap = {
         {"Steam", "steam"},
         {"Heroic launcher", "heroic-games-launcher-bin"},
         {"Lutris", "lutris"},
@@ -72,24 +92,30 @@ private:
         {"Gamescope", "gamescope"}
     };
 
+    void initUI();
     void connectSignals();
     void refreshPartitionsList();
     void fillRegionCombo();
     void initEmulatorsTab();
     void initPcGamesTab();
-    void genInstallScript(const QString &usrName, const QString &deviceName,
-                          const QString &timezone, const QString &efiPart,
-                          const QString &awxPart, const QString &homePart,
-                          qint32 swapSz, bool installXfce, bool instGrub,
-                          const QString &upwd, const QString &rpwd);
+    QString getAwxBtrfsMountOpts();
+    QString getHomeBtrfsMountOpts();
+    QString genSummary(const installData &data);
+    bool areValidSettings(const installData &data, const QString &upwd, const QString &ucpwd, const QString &rpwd, const QString &rcpwd);
+    void genInstallScript(const installData &data);
     void installOS();
     void installApps();
 
-public slots:
+private slots:
     void onProcessFinished(const QString &output);
     void onTabChanged(int idx);
     void onRegionComboChange(const QString &text);
     void onGpartedBtnClicked();
     void onInstallBtnClicked();
+    void on_awxPFormatCombo_currentIndexChanged(int index);
+    void on_homePartChk_stateChanged(int arg1);
+    void on_homePartFormatCombo_currentIndexChanged(int index);
+    void on_awxcowChk_stateChanged(int arg1);
+    void on_homecowChk_stateChanged(int arg1);
 };
 #endif // AWXLINUXINSTALLER_H

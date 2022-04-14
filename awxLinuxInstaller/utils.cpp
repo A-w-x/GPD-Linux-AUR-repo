@@ -73,11 +73,16 @@ namespace AwxLinux {
 
         QString salt_string;
         CalamaresUtils::EntropySource source = CalamaresUtils::getPrintableEntropy( length, salt_string );
+
         if ( salt_string.length() != length )
             salt_string.truncate( length );
 
         salt_string.insert( 0, "$6$" );
         salt_string.append( '$' );
         return salt_string;
+    }
+
+    QString Utils::boolString(bool vbool) const {
+        return vbool ? "true":"false";
     }
 }

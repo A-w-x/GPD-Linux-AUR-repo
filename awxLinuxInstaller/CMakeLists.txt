@@ -54,7 +54,7 @@ else()
     endif()
 endif()
 
-target_link_libraries(awxLinuxInstaller PRIVATE Qt${QT_VERSION_MAJOR}::Widgets parted crypt)
+target_link_libraries(awxLinuxInstaller PRIVATE Qt${QT_VERSION_MAJOR}::Widgets parted crypt procps)
 
 set_target_properties(awxLinuxInstaller PROPERTIES
     MACOSX_BUNDLE_GUI_IDENTIFIER my.example.com

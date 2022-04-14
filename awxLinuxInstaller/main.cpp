@@ -15,15 +15,41 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+#include <QApplication>
+#include <proc/readproc.h>
+
 #include "awxlinuxinstaller.h"
 
-#include <QApplication>
+bool isInstallerAlreadyRunning() {
+    PROCTAB* proctab = openproc(PROC_FILLSTAT | PROC_FILLSTATUS);
+    bool running = false;
+    proc_t proc;
 
-int main(int argc, char *argv[])
-{
+    memset(&proc, 0, sizeof(proc_t));
+
+    while (readproc(proctab, &proc) != nullptr) {
+        QString procName(proc.cmd);
+        bool isPowerMax = procName.compare("awxLinuxInstaller") == 0;
+
+        if (isPowerMax && running)
+            return true;
+        else if (isPowerMax)
+            running = true;
+    }
+
+    closeproc(proctab);
+    return false;
+}
+
+int main(int argc, char *argv[]) {
+    if (isInstallerAlreadyRunning())
+        return 0;
+
     QApplication a(argc, argv);
     AwxLinuxInstaller w;
+
     w.setFixedHeight(690);
     w.show();
+
     return a.exec();
 }
