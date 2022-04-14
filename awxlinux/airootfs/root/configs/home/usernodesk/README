@@ -2,6 +2,8 @@ Available Commands:
 
 up	-> sudo pacman -Syuu
 yup	-> yay -Syuu
+pcc	-> yes | sudo pacman -Scc
+ycc	-> yes | yay -Scc
 inst	-> sudo pacman -S
 yinst	-> yay -S --answerclean N --answerdiff N --answeredit N
 unst	-> sudo pacman -U

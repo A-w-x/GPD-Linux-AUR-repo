@@ -23,8 +23,8 @@
         <value type="int" value="12"/>
         <value type="int" value="9"/>
       </property>
-      <property name="mode" type="uint" value="0"/>
-      <property name="autohide-behavior" type="uint" value="2"/>
+      <property name="mode" type="uint" value="1"/>
+      <property name="autohide-behavior" type="uint" value="0"/>
     </property>
     <property name="panel-2" type="empty">
       <property name="autohide-behavior" type="uint" value="1"/>
@@ -33,14 +33,9 @@
       <property name="position-locked" type="bool" value="true"/>
       <property name="size" type="uint" value="48"/>
       <property name="plugin-ids" type="array">
-        <value type="int" value="4"/>
-        <value type="int" value="7"/>
         <value type="int" value="11"/>
         <value type="int" value="13"/>
         <value type="int" value="14"/>
-        <value type="int" value="20"/>
-        <value type="int" value="16"/>
-        <value type="int" value="17"/>
         <value type="int" value="15"/>
       </property>
     </property>
@@ -119,8 +114,6 @@
       <property name="expand" type="bool" value="true"/>
       <property name="style" type="uint" value="0"/>
     </property>
-    <property name="plugin-4" type="string" value="showdesktop"/>
-    <property name="plugin-7" type="string" value="separator"/>
     <property name="plugin-11" type="string" value="launcher">
       <property name="items" type="array">
         <value type="string" value="16334292501.desktop"/>
@@ -139,17 +132,6 @@
     <property name="plugin-15" type="string" value="launcher">
       <property name="items" type="array">
         <value type="string" value="16334292984.desktop"/>
-      </property>
-    </property>
-    <property name="plugin-16" type="string" value="separator"/>
-    <property name="plugin-17" type="string" value="directorymenu">
-      <property name="base-directory" type="string" value="/home/sky"/>
-      <property name="new-folder" type="bool" value="false"/>
-      <property name="new-document" type="bool" value="false"/>
-    </property>
-    <property name="plugin-20" type="string" value="launcher">
-      <property name="items" type="array">
-        <value type="string" value="16334298895.desktop"/>
       </property>
     </property>
     <property name="plugin-18" type="string" value="whiskermenu"/>

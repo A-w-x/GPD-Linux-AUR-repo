@@ -1,5 +1,6 @@
 vaapi=""
 cpuv=""
+pacstrapbtrfs=""
 device=$(dmidecode | grep -i product\ name | grep -Po 'Name: \K[^"]*' | head -n1)
 cpun=$(cat /proc/cpuinfo | grep 'model name' | sed -e 's/model name.*: //' | head -n 1)
 
@@ -9,11 +10,11 @@ function ask() {
 }
 
 function isYes() {
-	if [ "$1" == "y" ] || [ "$1" == "Y" ]; then
+	if [ "$1" = "y" ] || [ "$1" = "Y" ]; then
 		echo 1
-	elif [ "$1" == "n" ] || [ "$1" == "N" ]; then
+	elif [ "$1" = "n" ] || [ "$1" = "N" ]; then
 		echo 0
-	elif [ "$1" == "q" ] || [ "$1" == "Q" ]; then
+	elif [ "$1" = "q" ] || [ "$1" = "Q" ]; then
 		echo 3
 	else
 		echo 2
@@ -30,13 +31,47 @@ else
 	cpuv="amd"
 fi
 
-mkfs.ext4 -F "$awxpart"
 timedatectl set-ntp true
-mount "$awxpart" /mnt
-mount "$homepart" /mnt/home
+
+if [[ "$pformat" != "-" ]]; then
+	if [ "$pformat" = "ext4" ]; then
+		mkfs.ext4 -L AwxLinux -F "$awxpart"
+	else
+		pacstrapbtrfs="btrfs-progs"
+		mkfs.btrfs -L AwxLinux -f "$awxpart"
+	fi
+fi
+
+if [ "$pformat" = "btrfs" ] && [ ! -z "$btrfsmopts" ]; then
+	mount -o "$btrfsmopts" "$awxpart" /mnt
+else
+	mount "$awxpart" /mnt
+fi
+
+if [[ "$homepart" != "" ]]; then
+	if [[ "$homeformat" != "-" ]]; then
+		if [ "$homeformat" = "ext4" ]; then
+			mkfs.ext4 -L AwxLinuxHome -F "$homepart"
+		else
+			pacstrapbtrfs="btrfs-progs"
+			mkfs.btrfs -L AwxLinuxHome -f "$homepart"
+		fi
+	fi
+
+	if [ ! -d "/mnt/home" ]; then
+		mkdir /mnt/home
+	fi
+
+	if [ "$homeformat" = "btrfs" ] && [ ! -z "$homebtrfsmopts" ]; then
+		mount -o "$homebtrfsmopts" "$homepart" /mnt/home
+	else
+		mount "$homepart" /mnt/home
+	fi
+fi
+
 mkdir -p /mnt/boot
 mount "$efipart" /mnt/boot
-pacstrap /mnt base linux linux-firmware
+pacstrap /mnt base "$pacstrapbtrfs" linux linux-firmware
 genfstab -U /mnt >> /mnt/etc/fstab
 
 ln -sf "/mnt/usr/share/zoneinfo/$timezone" /mnt/etc/localtime
@@ -69,7 +104,7 @@ sed -i 's/ -Wp,-D_GLIBCXX_ASSERTIONS//' /mnt/etc/makepkg.conf
 
 arch-chroot /mnt pacman -Syy
 
-if [ "$instxfce" == "true" ]; then
+if [ "$instxfce" = "true" ]; then
 	arch-chroot /mnt pacman -S --noconfirm --overwrite \* base-devel \
 		xorg-server xf86-input-libinput xorg-xinput xorg-xinit \
 		pipewire pipewire-pulse pipewire-alsa gst-plugin-pipewire pavucontrol sof-firmware alsa-ucm-conf \
@@ -78,7 +113,7 @@ if [ "$instxfce" == "true" ]; then
 		tlp x86_energy_perf_policy ethtool \
 		thunar thunar-volman thunar-archive-plugin thunar-media-tags-plugin gvfs gvfs-mtp gvfs-smb file-roller tumbler ffmpegthumbnailer \
 		xfce4-battery-plugin xfce4-panel xfce4-pulseaudio-plugin xfce4-terminal xfce4-power-manager xfce4-settings xfce4-screenshooter \
-		xfce4-whiskermenu-plugin xfwm4 xfce4-xkb-plugin xfce4-appfinder xfce4-session garcon exo conky-linux-git \
+		xfce4-whiskermenu-plugin xfwm4 xfce4-xkb-plugin xfce4-session garcon exo conky-linux-git ksysguard \
 		nano git clang ccache git-lfs cmake gedit schedtool sed \
 		ttf-dejavu ttf-liberation noto-fonts-emoji noto-fonts adobe-source-han-sans-otc-fonts \
 		firefox mpv feh ntfs-3g os-prober wget curl \
@@ -103,7 +138,7 @@ if [ $? -eq 1 ]; then
 fi
 
 # vendor specific packages
-if [ "$cpuv" == "Int" ]; then
+if [ "$cpuv" = "Int" ]; then
 	vaapi="iHD"
 
 	arch-chroot /mnt pacman -S --noconfirm --overwrite \* xf86-video-intel \
@@ -123,7 +158,7 @@ fi
 mkdir inst
 cp -a configs/. inst
 
-if [ "$instxfce" == "true" ]; then
+if [ "$instxfce" = "true" ]; then
 	mv inst/home/user "inst/home/$username"
 	rm -r inst/home/usernodesk
 else
@@ -133,7 +168,7 @@ fi
 
 cp -a inst/. /mnt
 
-if [ "$instxfce" == "true" ]; then
+if [ "$instxfce" = "true" ]; then
 	if [ ! -d "/mnt/home/$username/.cache/sessions" ]; then
 		mkdir -p "/mnt/home/$username/.cache/sessions"
 	fi
@@ -152,7 +187,7 @@ echo -e "\n$username ALL=(ALL) ALL" >> /mnt/etc/sudoers
 echo "$username $deviceName =NOPASSWD: /usr/bin/systemctl poweroff,/usr/bin/systemctl halt,/usr/bin/systemctl reboot" >> /mnt/etc/sudoers
 echo "include \"/home/$username/.gtkrc-2.0.mine\"" > "/mnt/home/$username/.gtkrc-2.0"
 
-if [ "$cpuv" == "Int" ]; then
+if [ "$cpuv" = "Int" ]; then
 	sed -i 's/MODULES=()/MODULES=(i915)/' /mnt/etc/mkinitcpio.conf
 	echo "dev.i915.perf_stream_paranoid=0" > /mnt/etc/sysctl.d/99-i915.conf
 fi
@@ -162,7 +197,7 @@ echo -e "\n$username ALL=(ALL) NOPASSWD: ALL" >> /mnt/etc/sudoers
 
 arch-chroot /mnt mkinitcpio -P
 
-if [ "$instxfce" == "true" ]; then
+if [ "$instxfce" = "true" ]; then
 	cat <<- EOF > "/mnt/home/$username/.xinitp2"
 	#!/bin/sh
 
@@ -180,7 +215,7 @@ if [ "$instxfce" == "true" ]; then
 		n=\$(cat "\$hm")
 		nn=\${hm:22:1}
 
-		if [ "\$n" == "coretemp" ]; then
+		if [ "\$n" = "coretemp" ]; then
 				sed -i -e "76s/hwmon [0-9]/hwmon \$nn/" /home/$username/.config/conky/conky.conf
 				break
 		fi
@@ -225,6 +260,8 @@ cat <<- EOF >> "/mnt/home/$username/.bashrc"
 
 	alias up='sudo pacman -Syuu'
 	alias yup='yay -Syuu'
+	alias pcc='yes | sudo pacman -Scc'
+	alias ycc='yes | yay -Scc'
 	alias inst='sudo pacman -S'
 	alias unst='sudo pacman -U'
 	alias yinst='yay -S --answerclean N --answerdiff N --answeredit N'
@@ -265,7 +302,7 @@ rm "/mnt/home/$username/yay.tar.gz"
 rm "/mnt/home/$username/instyay"
 
 # add required packages from aur
-if [ "$instxfce" == "true" ]; then
+if [ "$instxfce" = "true" ]; then
 	arch-chroot /mnt sudo -u $username yay -S --noconfirm papirus-icon-theme papirus-folders-git vimix-gtk-themes touchegg-git tlpui-git networkmanager-dispatcher-ntpd
 	arch-chroot /mnt papirus-folders -C yaru --theme Papirus
 else
@@ -281,7 +318,7 @@ arch-chroot /mnt systemctl enable touchegg
 arch-chroot /mnt systemctl disable dbus
 arch-chroot /mnt systemctl --global enable dbus-broker
 
-if [ "$instxfce" == "true" ]; then
+if [ "$instxfce" = "true" ]; then
 	arch-chroot /mnt systemctl enable NetworkManager
 fi
 
@@ -305,7 +342,7 @@ case $device in
 	"G1618-03"|"G1619-03") # win3 | max 21
 		yes | arch-chroot /mnt pacman -S wmaxw3-tgl-tkg wmaxw3-tgl-tkg-headers mesa-wmax21w3-tkg-git lib32-mesa-wmax21w3-tkg-git
 
-		if [ "$device" == "G1618-03" ]; then
+		if [ "$device" = "G1618-03" ]; then
 			arch-chroot /mnt sudo -u $username yay -S --noconfirm goodix-gpdwin3-dkms
 			sed -i 's/--daemon/--daemon 6 29/' /mnt/lib/systemd/system/touchegg.service
 		else
@@ -321,7 +358,7 @@ case $device in
 		rm /mnt/etc/X11/xorg.conf.d/99-gxtp7385-xplayer.conf
 		;;
 	*)
-		if [ "$cpuv" == "Int" ]; then
+		if [ "$cpuv" = "Int" ]; then
 			arch-chroot /mnt pacman -S --noconfirm mesa vulkan-intel lib32-mesa lib32-vulkan-intel vulkan-mesa-layers \
 				lib32-vulkan-mesa-layers
 		else
@@ -349,7 +386,7 @@ if [ $swap -gt 0]; then
 	echo "vm.swappiness=100" > /mnt/etc/sysctl.d/90-swapfile.conf
 fi
 
-if [ "$instGrub" == "true" ]; then
+if [ "$instGrub" = "true" ]; then
 	arch-chroot /mnt pacman -S --noconfirm grub efibootmgr
 	arch-chroot /mnt grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB
 

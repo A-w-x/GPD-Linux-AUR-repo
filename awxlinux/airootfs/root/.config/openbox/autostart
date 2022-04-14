@@ -1,4 +1,5 @@
 
+xfsettingsd &
 feh --no-fehbg --bg-fill /root/.bg.jpg &
 tint2 &
 nm-applet &

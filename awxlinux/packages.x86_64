@@ -1,4 +1,5 @@
 wget
+adwaita-icon-theme
 amd-ucode
 arch-install-scripts
 archinstall
@@ -8,7 +9,6 @@ bind-tools
 brltty
 broadcom-wl
 btrfs-progs
-crda
 cryptsetup
 darkhttpd
 dhclient
@@ -126,3 +126,4 @@ gedit
 qt6-base
 xfce4-settings
 awxLinuxInstaller
+btrfs-progs
