@@ -427,8 +427,7 @@ void AwxLinuxInstaller::installApps() {
     }
 
     if (ui->steamtinkerChk->isChecked()) {
-        fstream << "yay -S --noconfirm steamtinkerlaunch\n" <<
-                   "steamtinkerlaunch compat add\n";
+        fstream << "yay -S --noconfirm steamtinkerlaunch\n";
     }
 
     if (ui->instMangoChk->isChecked()) {
@@ -443,6 +442,9 @@ void AwxLinuxInstaller::installApps() {
                    "sudo sed -i 's/#ConnectionLatency=/ConnectionLatency=0/' /etc/bluetooth/main.conf\n" <<
                    "sudo sed -i 's/#JustWorksRepairing = never/JustWorksRepairing=confirm/' /etc/bluetooth/main.conf\n";
     }
+
+    if (ui->steamtinkerChk->isChecked())
+        fstream << "complete initial steam setup, then type 'steamtinkerlaunch compat add' to add tinker launch to steam play settings";
 
     fstream << "echo \"###########\"\n" <<
                "echo Done!\n" <<
@@ -543,4 +545,3 @@ void AwxLinuxInstaller::on_homecowChk_stateChanged(int arg1) {
     if (ui->homecomprChk->isChecked())
         ui->homecomprChk->setChecked(arg1 == Qt::Checked);
 }
-
