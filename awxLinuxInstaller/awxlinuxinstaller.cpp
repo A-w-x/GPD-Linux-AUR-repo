@@ -371,6 +371,9 @@ void AwxLinuxInstaller::installApps() {
             emusStrList.removeAll("yuzu-mainline-bin");
         }
 
+        if (emusStrList.contains("pcsx2-git"))
+            fstream << "yay -S --noconfirm rapidyaml-git\n";
+
         if (emusStrList.contains("cemu")) {
             fstream << "sudo pacman -S --noconfirm wine wine-mono winetricks lutris vkd3d lib32-vkd3d\n" <<
                        "cmver=\"1.26.2\"\n" <<
