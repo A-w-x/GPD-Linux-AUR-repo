@@ -423,8 +423,10 @@ void AwxLinuxInstaller::installApps() {
         }
     }
 
-    if (ui->runSteamBootChk->isChecked())
-        fstream << "echo \"steam -bigpicture &\" >> \"$HOME/.xinitp2\"\n";
+    if (ui->steamtinkerChk->isChecked()) {
+        fstream << "yay -S --noconfirm steamtinkerlaunch\n" <<
+                   "steamtinkerlaunch compat add\n";
+    }
 
     if (ui->instMangoChk->isChecked()) {
         fstream << "sudo pacman -S --noconfirm vulkan-tools mesa-demos breeze\n" <<

@@ -33,7 +33,7 @@
        <bool>true</bool>
       </property>
       <property name="currentIndex">
-       <number>1</number>
+       <number>5</number>
       </property>
       <widget class="QWidget" name="tab">
        <attribute name="title">
@@ -949,10 +949,10 @@
            <string>Additions</string>
           </property>
           <layout class="QGridLayout" name="gridLayout_5">
-           <item row="0" column="1">
-            <widget class="QCheckBox" name="runSteamBootChk">
+           <item row="0" column="0">
+            <widget class="QCheckBox" name="xbcontrChk">
              <property name="text">
-              <string>Run Steam Big Picture at startup</string>
+              <string>Xbox One bluetooth controllers support</string>
              </property>
             </widget>
            </item>
@@ -963,10 +963,10 @@
              </property>
             </widget>
            </item>
-           <item row="0" column="0">
-            <widget class="QCheckBox" name="xbcontrChk">
+           <item row="0" column="1">
+            <widget class="QCheckBox" name="steamtinkerChk">
              <property name="text">
-              <string>Xbox One bluetooth controllers support</string>
+              <string>Install Steam Tinker Launch</string>
              </property>
             </widget>
            </item>
