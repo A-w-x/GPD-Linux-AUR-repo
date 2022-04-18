@@ -1,7 +1,7 @@
 # Maintainer: A-w-x
 
 pkgname=awxLinuxInstaller
-pkgver=2.2.0
+pkgver=2.2.1
 pkgrel=1
 pkgdesc="AwxLinux Installer"
 url="https://github.com/A-w-x/GPD-Linux-AUR-repo"
