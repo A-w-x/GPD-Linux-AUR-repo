@@ -1,0 +1,20 @@
+<driconf>
+	<device screen="0">
+		<application name="all">
+			<option name="glsl_zero_init" value="true" />
+			<option name="vblank_mode" value="0" />
+		</application>
+		<application name="firefox" executable="firefox">
+			<option name="vblank_mode" value="3" />
+		</application>
+		<application name="mpv" executable="mpv">
+			<option name="vblank_mode" value="3" />
+		</application>
+		<application name="yuzu" executable="yuzu">
+			<option name="force_integer_tex_nearest" value="true" />
+		</application>
+		<application name="Ryujinx" executable="Ryujinx">
+			<option name="force_integer_tex_nearest" value="true" />
+		</application>
+	</device>
+</driconf>

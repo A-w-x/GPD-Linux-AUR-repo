@@ -75,7 +75,7 @@ pacstrap /mnt base "$pacstrapbtrfs" linux linux-firmware
 genfstab -U /mnt >> /mnt/etc/fstab
 
 ln -sf "/mnt/usr/share/zoneinfo/$timezone" /mnt/etc/localtime
-sed -i "s/tzplaceholder/$timezone/" configs/home/user/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-panel.xml
+sed -i "s~tzplaceholder~$timezone~" configs/home/user/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-panel.xml
 arch-chroot /mnt hwclock --systohc
 sed -i 's/#en_US.UTF-8/en_US.UTF-8/' /mnt/etc/locale.gen
 arch-chroot /mnt locale-gen
@@ -337,7 +337,6 @@ case $device in
 		sed -i "s/'CPU Cache' 0/'CPU Cache' -50/" /mnt/etc/intel-undervolt.conf
 		sed -i "s/'System Agent' 0/'System Agent' -20/" /mnt/etc/intel-undervolt.conf
 		sed -i "s/interval 5000/interval 35000/" /mnt/etc/intel-undervolt.conf
-		rm /mnt/etc/X11/xorg.conf.d/99-gxtp7385-xplayer.conf
 		;;
 	"G1618-03"|"G1619-03") # win3 | max 21
 		yes | arch-chroot /mnt pacman -S wmaxw3-tgl-tkg wmaxw3-tgl-tkg-headers mesa-wmax21w3-tkg-git lib32-mesa-wmax21w3-tkg-git
@@ -355,7 +354,6 @@ case $device in
 		echo "options snd-intel-dspcfg dsp_driver=1" > /mnt/etc/modprobe.d/alsa-base.conf
 		echo "export VDPAU_DRIVER=va_gl" >> "/mnt/home/$username/.bashrc"
 		sed -i 's/eDP1/DSI1/' /mnt/etc/X11/xorg.conf.d/30-monitor.conf
-		rm /mnt/etc/X11/xorg.conf.d/99-gxtp7385-xplayer.conf
 		;;
 	*)
 		if [ "$cpuv" = "Int" ]; then
@@ -367,7 +365,6 @@ case $device in
 		fi
 
 		rm /mnt/etc/X11/xorg.conf.d/98-goodix.conf
-		rm /mnt/etc/X11/xorg.conf.d/99-gxtp7385-xplayer.conf
 		;;
 esac
 
@@ -378,12 +375,31 @@ arch-chroot /mnt ln -s /opt/scripts/romsfolderlink.sh /usr/local/bin/romsfolderl
 
 arch-chroot /mnt pacman -Syy
 
-if [ $swap -gt 0]; then
-	dd if=/dev/zero of=/mnt/swapfile bs=1M count=$(($swap * 1024)) status=progress
-	chmod 600 /mnt/swapfile
-	mkswap /mnt/swapfile
+if [ $swap -gt 0 ]; then
+	if [ "$pformat" = "btrfs" ]; then
+		truncate -s 0 /mnt/swapfile
+		chattr +C /mnt/swapfile
+		fallocate -l "$swap"G /mnt/swapfile
+		chmod 0600 /mnt/swapfile
+		mkswap /mnt/swapfile
+	else
+		dd if=/dev/zero of=/mnt/swapfile bs=1M count=$(($swap * 1024)) status=progress
+		chmod 600 /mnt/swapfile
+		mkswap -U clear /mnt/swapfile
+	fi
+
 	echo "/swapfile none swap defaults 0 0" >> /mnt/etc/fstab
 	echo "vm.swappiness=100" > /mnt/etc/sysctl.d/90-swapfile.conf
+fi
+
+if [[ "$shgamespart" != "" ]]; then
+	if [ "$formatshgames" = "true" ]; then
+		mkfs.ntfs -L sharedGames -f "$shgamespart"
+	fi
+
+	uuid=$(blkid -o value -s UUID "$shgamespart")
+
+	echo "UUID=$uuid /run/media/sharedgames ntfs3 uid=1000,gid=1000,rw 0 0" >> /mnt/etc/fstab
 fi
 
 if [ "$instGrub" = "true" ]; then
@@ -405,7 +421,7 @@ fi
 sed -i '$d' /mnt/etc/sudoers
 umount -R /mnt
 
-clear
+echo -e "\n\n\n\n"
 echo -e "\n\n #############################\n" \
             "#   INSTALLATION COMPLETE!  #\n" \
             "#############################"

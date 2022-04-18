@@ -1,7 +1,7 @@
 #!/bin/sh
 gsettings set org.gnome.gedit.preferences.editor scheme 'molokai'
 
-if [ "${DEVICE_PROD_ID}" = "G1619-01" ] || [ "${DEVICE_PROD_ID}" = "G1619-02" ] || [ "${DEVICE_PROD_ID}" == "G1619-03" ]; then
+if [ "${DEVICE_PROD_ID}" == "G1619-01" ] || [ "${DEVICE_PROD_ID}" == "G1619-02" ] || [ "${DEVICE_PROD_ID}" == "G1619-03" ]; then
 	xfconf-query -c pointers -p /HTIX528800_093A0255_Touchpad/Properties/libinput_Tapping_Enabled -n -t int -s 1
 fi
 

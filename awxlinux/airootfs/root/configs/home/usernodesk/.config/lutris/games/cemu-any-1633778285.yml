@@ -1,0 +1,13 @@
+game:
+  arch: win64
+  exe: drive_c/Cemu/Cemu.exe
+  prefix: /opt/Cemu
+system:
+  disable_compositor: true
+wine:
+  dxvk: false
+  overrides:
+    dbghelp: native,builtin
+    mscoree: disabled
+    mshtml: disabled
+  version: 
