@@ -1,6 +1,6 @@
-From d3b2af40bdd86beeab0398dce9ef10d3290e25e5 Mon Sep 17 00:00:00 2001
-From: auser <nor@nore.com>
-Date: Sun, 27 Mar 2022 15:10:08 +0000
+From bcb9711c486a225bc4fba923c51ecae2604a1a78 Mon Sep 17 00:00:00 2001
+From: gituser <nore@nop.np>
+Date: Mon, 18 Apr 2022 15:47:44 +0200
 Subject: [PATCH 1/7] Revert "anv: don't store sample location sample count"
 
 This reverts commit 8cdd5647c6c3c52a0ff046791d39afb1ad6beac9.
@@ -14,7 +14,7 @@ This reverts commit 8cdd5647c6c3c52a0ff046791d39afb1ad6beac9.
  6 files changed, 24 insertions(+), 15 deletions(-)
 
 diff --git a/src/intel/vulkan/anv_cmd_buffer.c b/src/intel/vulkan/anv_cmd_buffer.c
-index bbc2de808b6..fc0e10c3a7a 100644
+index ea62f8bc65e..958c432b720 100644
 --- a/src/intel/vulkan/anv_cmd_buffer.c
 +++ b/src/intel/vulkan/anv_cmd_buffer.c
 @@ -199,9 +199,10 @@ anv_dynamic_state_copy(struct anv_dynamic_state *dest,
@@ -38,7 +38,7 @@ index bbc2de808b6..fc0e10c3a7a 100644
                  pSampleLocationsInfo->pSampleLocations, samples);
  
 diff --git a/src/intel/vulkan/anv_pipeline.c b/src/intel/vulkan/anv_pipeline.c
-index 459f376f521..2bc15c69c20 100644
+index eb5da15cfff..166dccfe4fa 100644
 --- a/src/intel/vulkan/anv_pipeline.c
 +++ b/src/intel/vulkan/anv_pipeline.c
 @@ -2292,23 +2292,29 @@ copy_non_dynamic_state(struct anv_graphics_pipeline *pipeline,
@@ -81,7 +81,7 @@ index 459f376f521..2bc15c69c20 100644
     if (states & ANV_CMD_DIRTY_DYNAMIC_COLOR_BLEND_STATE) {
        if (!raster_discard && uses_color_att) {
 diff --git a/src/intel/vulkan/anv_private.h b/src/intel/vulkan/anv_private.h
-index 412c9e430ce..7e95f240635 100644
+index caa463f6958..479a8891af2 100644
 --- a/src/intel/vulkan/anv_private.h
 +++ b/src/intel/vulkan/anv_private.h
 @@ -2738,6 +2738,7 @@ struct anv_dynamic_state {
@@ -93,7 +93,7 @@ index 412c9e430ce..7e95f240635 100644
     } sample_locations;
  
 diff --git a/src/intel/vulkan/genX_pipeline.c b/src/intel/vulkan/genX_pipeline.c
-index bc0157dbec5..1816e45a6c4 100644
+index 4d9e0a47573..7ebec74f743 100644
 --- a/src/intel/vulkan/genX_pipeline.c
 +++ b/src/intel/vulkan/genX_pipeline.c
 @@ -925,7 +925,7 @@ emit_ms_state(struct anv_graphics_pipeline *pipeline,
@@ -133,10 +133,10 @@ index 9d9ead4b695..e75dd890f4f 100644
     }
  
 diff --git a/src/intel/vulkan/gfx8_cmd_buffer.c b/src/intel/vulkan/gfx8_cmd_buffer.c
-index 8c36251b07c..623cdd4bcfa 100644
+index b9518fe5db8..63355e17d61 100644
 --- a/src/intel/vulkan/gfx8_cmd_buffer.c
 +++ b/src/intel/vulkan/gfx8_cmd_buffer.c
-@@ -633,7 +633,7 @@ genX(cmd_buffer_flush_dynamic_state)(struct anv_cmd_buffer *cmd_buffer)
+@@ -631,7 +631,7 @@ genX(cmd_buffer_flush_dynamic_state)(struct anv_cmd_buffer *cmd_buffer)
     if (anv_cmd_buffer_needs_dynamic_state(cmd_buffer,
                                            ANV_CMD_DIRTY_DYNAMIC_SAMPLE_LOCATIONS)) {
        genX(emit_sample_pattern)(&cmd_buffer->batch,
@@ -146,5 +146,5 @@ index 8c36251b07c..623cdd4bcfa 100644
     }
  
 -- 
-2.35.1
+2.35.3
 

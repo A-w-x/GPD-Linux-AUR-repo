@@ -1,6 +1,6 @@
-From 8b0cfa2a66276e71e6b69b9de906cb5d17b15415 Mon Sep 17 00:00:00 2001
-From: auser <nor@nore.com>
-Date: Sun, 27 Mar 2022 15:11:30 +0000
+From 4758a8a92c1210d553b2c3bd0c7a100442af4bca Mon Sep 17 00:00:00 2001
+From: gituser <nore@nop.np>
+Date: Mon, 18 Apr 2022 15:48:28 +0200
 Subject: [PATCH 5/7] Revert "anv: fix VK_DYNAMIC_STATE_COLOR_WRITE_ENABLE_EXT
  state"
 
@@ -14,7 +14,7 @@ This reverts commit a4f502de3228ec37dfcaa38225077ec3709d74ea.
  5 files changed, 153 insertions(+), 92 deletions(-)
 
 diff --git a/src/intel/vulkan/anv_cmd_buffer.c b/src/intel/vulkan/anv_cmd_buffer.c
-index fc0e10c3a7a..bc33816156e 100644
+index 958c432b720..ece92faa6cd 100644
 --- a/src/intel/vulkan/anv_cmd_buffer.c
 +++ b/src/intel/vulkan/anv_cmd_buffer.c
 @@ -1600,16 +1600,9 @@ void anv_CmdSetColorWriteEnableEXT(
@@ -38,7 +38,7 @@ index fc0e10c3a7a..bc33816156e 100644
     if (cmd_buffer->state.gfx.dynamic.color_writes != color_writes) {
        cmd_buffer->state.gfx.dynamic.color_writes = color_writes;
 diff --git a/src/intel/vulkan/anv_pipeline.c b/src/intel/vulkan/anv_pipeline.c
-index 352eaa352ad..9b95756aa9c 100644
+index 47afc27650c..c1f1f149990 100644
 --- a/src/intel/vulkan/anv_pipeline.c
 +++ b/src/intel/vulkan/anv_pipeline.c
 @@ -487,9 +487,12 @@ populate_wm_prog_key(const struct anv_graphics_pipeline *pipeline,
@@ -173,10 +173,10 @@ index 352eaa352ad..9b95756aa9c 100644
           }
        }
 diff --git a/src/intel/vulkan/genX_pipeline.c b/src/intel/vulkan/genX_pipeline.c
-index a1bccf9dc00..a78bc3007c9 100644
+index 780d187eafb..54648750025 100644
 --- a/src/intel/vulkan/genX_pipeline.c
 +++ b/src/intel/vulkan/genX_pipeline.c
-@@ -1434,18 +1434,10 @@ emit_cb_state(struct anv_graphics_pipeline *pipeline,
+@@ -1432,18 +1432,10 @@ emit_cb_state(struct anv_graphics_pipeline *pipeline,
           .SourceAlphaBlendFactor = vk_to_intel_blend[a->srcAlphaBlendFactor],
           .DestinationAlphaBlendFactor = vk_to_intel_blend[a->dstAlphaBlendFactor],
           .AlphaBlendFunction = vk_to_intel_blend_op[a->alphaBlendOp],
@@ -199,7 +199,7 @@ index a1bccf9dc00..a78bc3007c9 100644
        };
  
        if (a->srcColorBlendFactor != a->srcAlphaBlendFactor ||
-@@ -2261,8 +2253,7 @@ has_color_buffer_write_enabled(const struct anv_graphics_pipeline *pipeline,
+@@ -2259,8 +2251,7 @@ has_color_buffer_write_enabled(const struct anv_graphics_pipeline *pipeline,
        if (binding->index == UINT32_MAX)
           continue;
  
@@ -302,10 +302,10 @@ index 285d14066c4..5060362878e 100644
        struct anv_state blend_states =
           anv_cmd_buffer_merge_dynamic(cmd_buffer, blend_dws,
 diff --git a/src/intel/vulkan/gfx8_cmd_buffer.c b/src/intel/vulkan/gfx8_cmd_buffer.c
-index 5e165102011..154e192ef47 100644
+index 5b5f282812b..6c0fffe9fd1 100644
 --- a/src/intel/vulkan/gfx8_cmd_buffer.c
 +++ b/src/intel/vulkan/gfx8_cmd_buffer.c
-@@ -642,32 +642,43 @@ genX(cmd_buffer_flush_dynamic_state)(struct anv_cmd_buffer *cmd_buffer)
+@@ -640,32 +640,43 @@ genX(cmd_buffer_flush_dynamic_state)(struct anv_cmd_buffer *cmd_buffer)
                                            ANV_CMD_DIRTY_DYNAMIC_COLOR_BLEND_STATE |
                                            ANV_CMD_DIRTY_DYNAMIC_LOGIC_OP)) {
        const uint8_t color_writes = cmd_buffer->state.gfx.dynamic.color_writes;
@@ -369,7 +369,7 @@ index 5e165102011..154e192ef47 100644
  
        uint32_t blend_dws[GENX(BLEND_STATE_length) +
                           MAX_RTS * GENX(BLEND_STATE_ENTRY_length)];
-@@ -680,8 +691,10 @@ genX(cmd_buffer_flush_dynamic_state)(struct anv_cmd_buffer *cmd_buffer)
+@@ -678,8 +689,10 @@ genX(cmd_buffer_flush_dynamic_state)(struct anv_cmd_buffer *cmd_buffer)
        bool dirty_logic_op =
           cmd_buffer->state.gfx.dirty & ANV_CMD_DIRTY_DYNAMIC_LOGIC_OP;
  
@@ -382,7 +382,7 @@ index 5e165102011..154e192ef47 100644
           struct GENX(BLEND_STATE_ENTRY) entry = {
              .WriteDisableAlpha = write_disabled,
              .WriteDisableRed   = write_disabled,
-@@ -695,7 +708,7 @@ genX(cmd_buffer_flush_dynamic_state)(struct anv_cmd_buffer *cmd_buffer)
+@@ -693,7 +706,7 @@ genX(cmd_buffer_flush_dynamic_state)(struct anv_cmd_buffer *cmd_buffer)
        }
  
        uint32_t num_dwords = GENX(BLEND_STATE_length) +
@@ -392,5 +392,5 @@ index 5e165102011..154e192ef47 100644
        struct anv_state blend_states =
           anv_cmd_buffer_merge_dynamic(cmd_buffer, blend_dws,
 -- 
-2.35.1
+2.35.3
 

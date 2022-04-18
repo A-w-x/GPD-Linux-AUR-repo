@@ -1,6 +1,6 @@
-From b94579690b6b22296415d26c2fe94a131900b5d3 Mon Sep 17 00:00:00 2001
-From: auser <nor@nore.com>
-Date: Sun, 27 Mar 2022 15:11:16 +0000
+From 6096c06dff2b4771ce0a7050522156294a8fdce2 Mon Sep 17 00:00:00 2001
+From: gituser <nore@nop.np>
+Date: Mon, 18 Apr 2022 15:48:18 +0200
 Subject: [PATCH 4/7] Revert "anv: fix color write enable interaction with
  color mask"
 
@@ -14,7 +14,7 @@ This reverts commit 1d250b7b959d2a206280e4f83db05780a83e0927.
  5 files changed, 56 insertions(+), 99 deletions(-)
 
 diff --git a/src/intel/vulkan/anv_pipeline.c b/src/intel/vulkan/anv_pipeline.c
-index 2bc15c69c20..352eaa352ad 100644
+index 166dccfe4fa..47afc27650c 100644
 --- a/src/intel/vulkan/anv_pipeline.c
 +++ b/src/intel/vulkan/anv_pipeline.c
 @@ -2058,16 +2058,6 @@ anv_pipeline_compile_cs(struct anv_compute_pipeline *pipeline,
@@ -49,7 +49,7 @@ index 2bc15c69c20..352eaa352ad 100644
  
     if (uses_color_att && !raster_discard) {
        assert(pCreateInfo->pColorBlendState);
-@@ -2559,17 +2555,6 @@ anv_graphics_pipeline_init(struct anv_graphics_pipeline *pipeline,
+@@ -2558,17 +2554,6 @@ anv_graphics_pipeline_init(struct anv_graphics_pipeline *pipeline,
     pipeline->rasterization_samples =
        ms_info ? ms_info->rasterizationSamples : 1;
  
@@ -68,7 +68,7 @@ index 2bc15c69c20..352eaa352ad 100644
  }
  
 diff --git a/src/intel/vulkan/anv_private.h b/src/intel/vulkan/anv_private.h
-index 7e95f240635..2d44d169db6 100644
+index 479a8891af2..eeb0e4a05f5 100644
 --- a/src/intel/vulkan/anv_private.h
 +++ b/src/intel/vulkan/anv_private.h
 @@ -3383,8 +3383,6 @@ struct anv_graphics_pipeline {
@@ -107,10 +107,10 @@ index 7e95f240635..2d44d169db6 100644
  static inline const struct brw_##prefix##_prog_data *                   \
  get_##prefix##_prog_data(const struct anv_graphics_pipeline *pipeline)  \
 diff --git a/src/intel/vulkan/genX_pipeline.c b/src/intel/vulkan/genX_pipeline.c
-index d2c707d4a7f..a1bccf9dc00 100644
+index 460d4506b7a..780d187eafb 100644
 --- a/src/intel/vulkan/genX_pipeline.c
 +++ b/src/intel/vulkan/genX_pipeline.c
-@@ -1406,6 +1406,8 @@ emit_cb_state(struct anv_graphics_pipeline *pipeline,
+@@ -1404,6 +1404,8 @@ emit_cb_state(struct anv_graphics_pipeline *pipeline,
           .AlphaToOneEnable = ms_info && ms_info->alphaToOneEnable,
  #endif
           .LogicOpEnable = info->logicOpEnable,
@@ -119,7 +119,7 @@ index d2c707d4a7f..a1bccf9dc00 100644
  
           /* Vulkan specification 1.2.168, VkLogicOp:
            *
-@@ -1432,20 +1434,20 @@ emit_cb_state(struct anv_graphics_pipeline *pipeline,
+@@ -1430,20 +1432,20 @@ emit_cb_state(struct anv_graphics_pipeline *pipeline,
           .SourceAlphaBlendFactor = vk_to_intel_blend[a->srcAlphaBlendFactor],
           .DestinationAlphaBlendFactor = vk_to_intel_blend[a->dstAlphaBlendFactor],
           .AlphaBlendFunction = vk_to_intel_blend_op[a->alphaBlendOp],
@@ -152,7 +152,7 @@ index d2c707d4a7f..a1bccf9dc00 100644
        if (a->srcColorBlendFactor != a->srcAlphaBlendFactor ||
            a->dstColorBlendFactor != a->dstAlphaBlendFactor ||
            a->colorBlendOp != a->alphaBlendOp) {
-@@ -2317,11 +2319,11 @@ emit_3dstate_wm(struct anv_graphics_pipeline *pipeline,
+@@ -2315,11 +2317,11 @@ emit_3dstate_wm(struct anv_graphics_pipeline *pipeline,
           wm_prog_data->has_side_effects ||
           wm_prog_data->uses_kill;
  
@@ -168,7 +168,7 @@ index d2c707d4a7f..a1bccf9dc00 100644
        }
  #endif
  
-@@ -2350,11 +2352,10 @@ emit_3dstate_wm(struct anv_graphics_pipeline *pipeline,
+@@ -2348,11 +2350,10 @@ emit_3dstate_wm(struct anv_graphics_pipeline *pipeline,
           wm_prog_data->has_side_effects ||
           wm.PixelShaderKillsPixel;
  
@@ -249,10 +249,10 @@ index cf183429878..285d14066c4 100644
           GENX(BLEND_STATE_ENTRY_pack)(NULL, dws, &entry);
           dws += GENX(BLEND_STATE_ENTRY_length);
 diff --git a/src/intel/vulkan/gfx8_cmd_buffer.c b/src/intel/vulkan/gfx8_cmd_buffer.c
-index 8f30e1253a2..5e165102011 100644
+index c732ae85c72..5b5f282812b 100644
 --- a/src/intel/vulkan/gfx8_cmd_buffer.c
 +++ b/src/intel/vulkan/gfx8_cmd_buffer.c
-@@ -642,6 +642,7 @@ genX(cmd_buffer_flush_dynamic_state)(struct anv_cmd_buffer *cmd_buffer)
+@@ -640,6 +640,7 @@ genX(cmd_buffer_flush_dynamic_state)(struct anv_cmd_buffer *cmd_buffer)
                                            ANV_CMD_DIRTY_DYNAMIC_COLOR_BLEND_STATE |
                                            ANV_CMD_DIRTY_DYNAMIC_LOGIC_OP)) {
        const uint8_t color_writes = cmd_buffer->state.gfx.dynamic.color_writes;
@@ -260,7 +260,7 @@ index 8f30e1253a2..5e165102011 100644
        /* 3DSTATE_WM in the hope we can avoid spawning fragment shaders
         * threads.
         */
-@@ -650,8 +651,7 @@ genX(cmd_buffer_flush_dynamic_state)(struct anv_cmd_buffer *cmd_buffer)
+@@ -648,8 +649,7 @@ genX(cmd_buffer_flush_dynamic_state)(struct anv_cmd_buffer *cmd_buffer)
           GENX(3DSTATE_WM_header),
  
           .ForceThreadDispatchEnable = (pipeline->force_fragment_thread_dispatch ||
@@ -270,7 +270,7 @@ index 8f30e1253a2..5e165102011 100644
        };
        GENX(3DSTATE_WM_pack)(NULL, wm_dwords, &wm);
  
-@@ -677,24 +677,18 @@ genX(cmd_buffer_flush_dynamic_state)(struct anv_cmd_buffer *cmd_buffer)
+@@ -675,24 +675,18 @@ genX(cmd_buffer_flush_dynamic_state)(struct anv_cmd_buffer *cmd_buffer)
        /* Skip this part */
        dws += GENX(BLEND_STATE_length);
  
@@ -306,5 +306,5 @@ index 8f30e1253a2..5e165102011 100644
           GENX(BLEND_STATE_ENTRY_pack)(NULL, dws, &entry);
           dws += GENX(BLEND_STATE_ENTRY_length);
 -- 
-2.35.1
+2.35.3
 

@@ -1,6 +1,6 @@
-From 035fd904c769337db9fbf5b3b11bac84de2234a7 Mon Sep 17 00:00:00 2001
-From: auser <nor@nore.com>
-Date: Sun, 27 Mar 2022 15:10:44 +0000
+From 3c07db117876c460744306731bd99996d2a17935 Mon Sep 17 00:00:00 2001
+From: gituser <nore@nop.np>
+Date: Mon, 18 Apr 2022 15:47:56 +0200
 Subject: [PATCH 2/7] Revert "anv: fix dynamic sample locations on Gen7/7.5"
 
 This reverts commit 6f5f817c0fa414d23b7e843fc27237053b072a2c.
@@ -9,7 +9,7 @@ This reverts commit 6f5f817c0fa414d23b7e843fc27237053b072a2c.
  1 file changed, 22 insertions(+), 16 deletions(-)
 
 diff --git a/src/intel/vulkan/genX_pipeline.c b/src/intel/vulkan/genX_pipeline.c
-index 1816e45a6c4..d2c707d4a7f 100644
+index 7ebec74f743..460d4506b7a 100644
 --- a/src/intel/vulkan/genX_pipeline.c
 +++ b/src/intel/vulkan/genX_pipeline.c
 @@ -922,28 +922,34 @@ emit_ms_state(struct anv_graphics_pipeline *pipeline,
@@ -64,5 +64,5 @@ index 1816e45a6c4..d2c707d4a7f 100644
     }
  
 -- 
-2.35.1
+2.35.3
 

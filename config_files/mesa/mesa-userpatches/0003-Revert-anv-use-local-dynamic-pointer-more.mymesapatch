@@ -1,6 +1,6 @@
-From 0339b19c0859b63dee0e686451c10d92d6dfbe9b Mon Sep 17 00:00:00 2001
-From: auser <nor@nore.com>
-Date: Sun, 27 Mar 2022 15:11:01 +0000
+From e1278bbd267d3193724ffbfddd87af243364a046 Mon Sep 17 00:00:00 2001
+From: gituser <nore@nop.np>
+Date: Mon, 18 Apr 2022 15:48:06 +0200
 Subject: [PATCH 3/7] Revert "anv: use local dynamic pointer more"
 
 This reverts commit 8ad78671b334b1f1798d9aff48abdd543b2348bd.
@@ -53,7 +53,7 @@ index e75dd890f4f..cf183429878 100644
        uint32_t blend_dws[GENX(BLEND_STATE_length) +
                           MAX_RTS * GENX(BLEND_STATE_ENTRY_length)];
 diff --git a/src/intel/vulkan/gfx8_cmd_buffer.c b/src/intel/vulkan/gfx8_cmd_buffer.c
-index 623cdd4bcfa..8f30e1253a2 100644
+index 63355e17d61..c732ae85c72 100644
 --- a/src/intel/vulkan/gfx8_cmd_buffer.c
 +++ b/src/intel/vulkan/gfx8_cmd_buffer.c
 @@ -325,7 +325,8 @@ genX(cmd_buffer_flush_dynamic_state)(struct anv_cmd_buffer *cmd_buffer)
@@ -66,7 +66,7 @@ index 623cdd4bcfa..8f30e1253a2 100644
     }
  #endif /* GFX_VER >= 11 */
  
-@@ -633,14 +634,14 @@ genX(cmd_buffer_flush_dynamic_state)(struct anv_cmd_buffer *cmd_buffer)
+@@ -631,14 +632,14 @@ genX(cmd_buffer_flush_dynamic_state)(struct anv_cmd_buffer *cmd_buffer)
     if (anv_cmd_buffer_needs_dynamic_state(cmd_buffer,
                                            ANV_CMD_DIRTY_DYNAMIC_SAMPLE_LOCATIONS)) {
        genX(emit_sample_pattern)(&cmd_buffer->batch,
@@ -85,5 +85,5 @@ index 623cdd4bcfa..8f30e1253a2 100644
         * threads.
         */
 -- 
-2.35.1
+2.35.3
 
