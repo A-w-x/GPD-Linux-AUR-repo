@@ -8,6 +8,7 @@ url="https://github.com/A-w-x/GPD-Linux-AUR-repo"
 arch=('x86_64')
 license=('GPL3')
 depends=('qt6-base')
+makedepends=('git' 'cmake' 'parted' 'procps-ng')
 source=(
 	"git+https://github.com/A-w-x/GPD-Linux-AUR-repo.git"
 	"awxlinuxinstaller.desktop"
