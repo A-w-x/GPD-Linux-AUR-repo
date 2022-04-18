@@ -55,6 +55,8 @@ private:
         QString timezone;
         QString encUpwd;
         QString encRpwd;
+        QString shgamesPart;
+        QString shgamesPartWipe;
     };
 
     Ui::AwxLinuxInstaller *ui;
@@ -117,5 +119,6 @@ private slots:
     void on_homePartFormatCombo_currentIndexChanged(int index);
     void on_awxcowChk_stateChanged(int arg1);
     void on_homecowChk_stateChanged(int arg1);
+    void on_shgamesChk_stateChanged(int arg1);
 };
 #endif // AWXLINUXINSTALLER_H

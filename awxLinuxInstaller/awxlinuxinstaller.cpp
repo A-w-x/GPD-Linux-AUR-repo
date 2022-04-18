@@ -31,6 +31,7 @@ void AwxLinuxInstaller::initUI() {
     ui->homePartBtrfsOpts->setVisible(false);
     ui->homePartCombo->setEnabled(false);
     ui->homePartFormatCombo->setEnabled(false);
+    ui->shgamesPartCombo->setEnabled(false);
 }
 
 void AwxLinuxInstaller::connectSignals() {
@@ -81,6 +82,7 @@ void AwxLinuxInstaller::refreshPartitionsList() {
     ui->efiPartCombo->setEnabled(false);
     ui->awxPartCombo->setEnabled(false);
     ui->homePartCombo->setEnabled(false);
+    ui->shgamesPartCombo->setEnabled(false);
     ui->refreshPartListBtn->setEnabled(false);
 
     utls.runFdiskAsync();
@@ -195,6 +197,13 @@ QString AwxLinuxInstaller::genSummary(const installData &data) {
         }
     }
 
+    if (ui->shgamesChk->isChecked()) {
+        summary << "Shared games partition: " << data.shgamesPart << "\n\n";
+
+        if (ui->shgamesFormChk->isChecked())
+            summary << "Wipe shared games partition: " << utls.boolString(ui->shgamesFormChk->isChecked()) << "\n\n";
+    }
+
     summary << "Username: " << data.usrname << "\n\n" <<
                "Device name: " << data.deviceName << "\n\n" <<
                "Timezone: " << data.timezone << "\n\n" <<
@@ -234,6 +243,8 @@ void AwxLinuxInstaller::genInstallScript(const installData &data) {
                "homeformat=\"" << data.homePartFormat << "\"\n" <<
                "homebtrfsmopts=\"" << data.homePartBtrfsOpts << "\"\n" <<
                "efipart=\"" << data.efiPart << "\"\n" <<
+               "shgamespart=\"" << data.shgamesPart << "\"\n" <<
+               "formatshgames=\"" << data.shgamesPartWipe << "\"\n" <<
                "timezone=\"" << data.timezone << "\"\n" <<
                "deviceName='" << data.deviceName << "'\n" <<
                "username='" << data.usrname << "'\n" <<
@@ -260,6 +271,8 @@ bool AwxLinuxInstaller::areValidSettings(const installData &data, const QString 
         err = "EFI device cannot be empty";
     else if (ui->homePartChk->isChecked() && data.homePart == "")
         err = "You enabled Home partition but no device is selected.";
+    else if (ui->shgamesChk->isChecked() && data.shgamesPart == "")
+        err = "You enabled a shared games partition but no device is selected.";
     else if (upwd == "" || ucpwd == "" || rpwd == "" || rcpwd == "")
         err = "Password field cannot be empty";
     else if (data.usrname == "")
@@ -293,6 +306,8 @@ void AwxLinuxInstaller::installOS() {
         .deviceName = ui->devicename->text().simplified().remove(' '),
         .swapSz = ui->swapFileSize->value(),
         .instXfce = utls.boolString(ui->instxfceChk->isChecked()),
+        .shgamesPart = ui->shgamesPartCombo->currentText(),
+        .shgamesPartWipe = utls.boolString(ui->shgamesFormChk->isChecked())
     };
     QString upwd = ui->upwd->text();
     QString ucpwd = ui->ucpwd->text();
@@ -397,7 +412,7 @@ void AwxLinuxInstaller::installApps() {
         }
 
         if (emusStrList.contains("ryu")) {
-            fstream << "ryuV=\"1.1.102\"\n" <<
+            fstream << "ryuV=\"1.1.104\"\n" <<
                        "rm -r /opt/ryujinx\n" <<
                        "wget \"https://github.com/Ryujinx/release-channel-master/releases/download/$ryuV/ryujinx-$ryuV-linux_x64.tar.gz\"\n" <<
                        "tar -xvf \"ryujinx-$ryuV-linux_x64.tar.gz\"\n" <<
@@ -465,20 +480,24 @@ void AwxLinuxInstaller::onProcessFinished(const QString &output) {
     ui->efiPartCombo->clear();
     ui->awxPartCombo->clear();
     ui->homePartCombo->clear();
+    ui->shgamesPartCombo->clear();
 
     ui->efiPartCombo->addItem("");
     ui->awxPartCombo->addItem("");
     ui->homePartCombo->addItem("");
+    ui->shgamesPartCombo->addItem("");
 
     for (const QString &part: partitions) {
         ui->efiPartCombo->addItem(part);
         ui->awxPartCombo->addItem(part);
         ui->homePartCombo->addItem(part);
+        ui->shgamesPartCombo->addItem(part);
     }
 
     ui->efiPartCombo->setEnabled(true);
     ui->awxPartCombo->setEnabled(true);
     ui->homePartCombo->setEnabled(ui->homePartChk->isChecked());
+    ui->shgamesPartCombo->setEnabled(true);
     ui->refreshPartListBtn->setEnabled(true);
 
     processRunning = false;
@@ -544,4 +563,9 @@ void AwxLinuxInstaller::on_homecowChk_stateChanged(int arg1) {
 
     if (ui->homecomprChk->isChecked())
         ui->homecomprChk->setChecked(arg1 == Qt::Checked);
+}
+
+void AwxLinuxInstaller::on_shgamesChk_stateChanged(int arg1) {
+    ui->shgamesPartCombo->setEnabled(arg1 == Qt::Checked);
+    ui->shgamesFormChk->setEnabled(arg1 == Qt::Checked);
 }

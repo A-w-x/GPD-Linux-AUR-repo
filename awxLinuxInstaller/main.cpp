@@ -29,7 +29,7 @@ bool isInstallerAlreadyRunning() {
 
     while (readproc(proctab, &proc) != nullptr) {
         QString procName(proc.cmd);
-        bool isPowerMax = procName.compare("awxLinuxInstaller") == 0;
+        bool isPowerMax = procName.compare("awxLinuxInstall") == 0;
 
         if (isPowerMax && running)
             return true;
