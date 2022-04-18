@@ -379,7 +379,7 @@ void AwxLinuxInstaller::installApps() {
     fstream << "#!/bin/bash\n";
 
     if (!emusStrList.empty()) {
-        fstream << "yay -S --noconfirm wolfssl cubeb cpp-httplib-compiled discord-rpc-git\n";
+        fstream << "yay -S --noconfirm wolfssl cubeb cpp-httplib-compiled discord-rpc-git fmt libao wxgtk2 wxgtk3\n";
 
         if (emusStrList.contains("yuzu-mainline-bin")) {
             fstream << "yay -S --noconfirm yuzu-mainline-bin\n";
