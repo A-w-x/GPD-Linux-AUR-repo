@@ -15,7 +15,7 @@ galliumd=""
 vulkand=""
 flags=""
 commit=""
-prs="13294 16299"
+prs="13294 16299 16111 16556"
 
 ccache -C
 
