@@ -368,10 +368,12 @@ case $device in
 		;;
 esac
 
-arch-chroot /mnt chmod +x /opt/scripts/savefolderlink.sh
-arch-chroot /mnt chmod +x /opt/scripts/romsfolderlink.sh
-arch-chroot /mnt ln -s /opt/scripts/savefolderlink.sh /usr/local/bin/savefolderlink
-arch-chroot /mnt ln -s /opt/scripts/romsfolderlink.sh /usr/local/bin/romsfolderlink
+if [ "$pformat" = "btrfs" ]; then
+	chattr +C "/mnt/home/$username/.cache"
+fi
+
+arch-chroot /mnt chmod +x /opt/scripts/retrofolderslink.sh
+arch-chroot /mnt ln -s /opt/scripts/retrofolderslink.sh /usr/local/bin/retrofolderslink
 
 arch-chroot /mnt pacman -Syy
 
