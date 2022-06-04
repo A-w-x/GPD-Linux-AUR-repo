@@ -1,0 +1,22 @@
+diff -Naur linux-5.18.1/drivers/gpu/drm/drm_panel_orientation_quirks.c linux-5.18.1p/drivers/gpu/drm/drm_panel_orientation_quirks.c
+--- linux-5.18.1/drivers/gpu/drm/drm_panel_orientation_quirks.c	2022-05-30 09:24:09.000000000 +0200
++++ linux-5.18.1p/drivers/gpu/drm/drm_panel_orientation_quirks.c	2022-06-04 11:23:24.002862976 +0200
+@@ -186,6 +186,18 @@
+ 		  DMI_EXACT_MATCH(DMI_PRODUCT_NAME, "G1619-01"),
+ 		},
+ 		.driver_data = (void *)&lcd800x1280_rightside_up,
++	}, {	/* GPD Win Max 2021 intel */
++		.matches = {
++		  DMI_EXACT_MATCH(DMI_SYS_VENDOR, "GPD"),
++		  DMI_EXACT_MATCH(DMI_PRODUCT_NAME, "G1619-03"),
++		},
++		.driver_data = (void *)&lcd800x1280_rightside_up,
++	}, {	/* GPD Win Max 2021 amd */
++		.matches = {
++		  DMI_EXACT_MATCH(DMI_SYS_VENDOR, "GPD"),
++		  DMI_EXACT_MATCH(DMI_PRODUCT_NAME, "G1619-02"),
++		},
++		.driver_data = (void *)&lcd800x1280_rightside_up,
+ 	}, {	/*
+ 		 * GPD Pocket, note that the the DMI data is less generic then
+ 		 * it seems, devices with a board-vendor of "AMI Corporation"

@@ -1,0 +1,61 @@
+diff -Naur linux-5.18.1/drivers/gpu/drm/i915/gem/i915_gem_pages.c linux-5.18.1p/drivers/gpu/drm/i915/gem/i915_gem_pages.c
+--- linux-5.18.1/drivers/gpu/drm/i915/gem/i915_gem_pages.c	2022-05-30 09:24:09.000000000 +0200
++++ linux-5.18.1p/drivers/gpu/drm/i915/gem/i915_gem_pages.c	2022-06-04 11:31:46.414848132 +0200
+@@ -215,13 +215,13 @@
+ 	__i915_gem_object_reset_page_iter(obj);
+ 	obj->mm.page_sizes.phys = obj->mm.page_sizes.sg = 0;
+ 
+-	if (test_and_clear_bit(I915_BO_WAS_BOUND_BIT, &obj->flags)) {
++	/*if (test_and_clear_bit(I915_BO_WAS_BOUND_BIT, &obj->flags)) {
+ 		struct drm_i915_private *i915 = to_i915(obj->base.dev);
+ 		intel_wakeref_t wakeref;
+ 
+ 		with_intel_runtime_pm_if_active(&i915->runtime_pm, wakeref)
+ 			intel_gt_invalidate_tlbs(to_gt(i915));
+-	}
++	}*/
+ 
+ 	return pages;
+ }
+diff -Naur linux-5.18.1/drivers/gpu/drm/i915/gt/intel_gt.c linux-5.18.1p/drivers/gpu/drm/i915/gt/intel_gt.c
+--- linux-5.18.1/drivers/gpu/drm/i915/gt/intel_gt.c	2022-05-30 09:24:09.000000000 +0200
++++ linux-5.18.1p/drivers/gpu/drm/i915/gt/intel_gt.c	2022-06-04 11:32:26.402846950 +0200
+@@ -33,7 +33,7 @@
+ {
+ 	spin_lock_init(&gt->irq_lock);
+ 
+-	mutex_init(&gt->tlb_invalidate_lock);
++	//mutex_init(&gt->tlb_invalidate_lock);
+ 
+ 	INIT_LIST_HEAD(&gt->closed_vma);
+ 	spin_lock_init(&gt->closed_lock);
+diff -Naur linux-5.18.1/drivers/gpu/drm/i915/i915_vma.c linux-5.18.1p/drivers/gpu/drm/i915/i915_vma.c
+--- linux-5.18.1/drivers/gpu/drm/i915/i915_vma.c	2022-05-30 09:24:09.000000000 +0200
++++ linux-5.18.1p/drivers/gpu/drm/i915/i915_vma.c	2022-06-04 11:33:58.526844228 +0200
+@@ -528,8 +528,8 @@
+ 				   bind_flags);
+ 	}
+ 
+-	if (vma->obj)
+-		set_bit(I915_BO_WAS_BOUND_BIT, &vma->obj->flags);
++	/*if (vma->obj)
++		set_bit(I915_BO_WAS_BOUND_BIT, &vma->obj->flags);*/
+ 
+ 	atomic_or(bind_flags, &vma->flags);
+ 	return 0;
+diff -Naur linux-5.18.1/drivers/gpu/drm/i915/intel_uncore.c linux-5.18.1p/drivers/gpu/drm/i915/intel_uncore.c
+--- linux-5.18.1/drivers/gpu/drm/i915/intel_uncore.c	2022-05-30 09:24:09.000000000 +0200
++++ linux-5.18.1p/drivers/gpu/drm/i915/intel_uncore.c	2022-06-04 11:34:46.630842807 +0200
+@@ -741,10 +741,10 @@
+ 			continue;
+ 		}
+ 
+-		if (delayed &&
++		/*if (delayed &&
+ 		    !(domain->uncore->fw_domains_timer & domain->mask))
+ 			fw_domain_arm_timer(domain);
+-		else
++		else*/
+ 			fw_domains_put(uncore, domain->mask);
+ 	}
+ }
