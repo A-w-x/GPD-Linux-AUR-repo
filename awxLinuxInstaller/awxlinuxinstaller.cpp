@@ -207,6 +207,7 @@ QString AwxLinuxInstaller::genSummary(const installData &data) {
     summary << "Username: " << data.usrname << "\n\n" <<
                "Device name: " << data.deviceName << "\n\n" <<
                "Timezone: " << data.timezone << "\n\n" <<
+               "Mount all NTFS drives with ntfs3: " << utls.boolString(ui->ntfs3MntChk->isChecked()) <<
                "Install AwxLinux Xfce: " << data.instXfce << "\n\n" <<
                "Install GRUB: " << data.instGrub << "\n\n";
 
@@ -252,6 +253,7 @@ void AwxLinuxInstaller::genInstallScript(const installData &data) {
                "rpwd='" << data.encRpwd << "'\n" <<
                "swap=" << data.swapSz << "\n" <<
                "instxfce=\"" << data.instXfce << "\"\n" <<
+               "ntfs3win=\"" << data.ntfs3Default << "\"\n" <<
                "instGrub=\"" << data.instGrub << "\"\n" <<
                instScript.readAll();
 
@@ -307,7 +309,8 @@ void AwxLinuxInstaller::installOS() {
         .swapSz = ui->swapFileSize->value(),
         .instXfce = utls.boolString(ui->instxfceChk->isChecked()),
         .shgamesPart = ui->shgamesPartCombo->currentText(),
-        .shgamesPartWipe = utls.boolString(ui->shgamesFormChk->isChecked())
+        .shgamesPartWipe = utls.boolString(ui->shgamesFormChk->isChecked()),
+        .ntfs3Default = utls.boolString(ui->ntfs3MntChk->isChecked())
     };
     QString upwd = ui->upwd->text();
     QString ucpwd = ui->ucpwd->text();
@@ -412,7 +415,7 @@ void AwxLinuxInstaller::installApps() {
         }
 
         if (emusStrList.contains("ryu")) {
-            fstream << "ryuV=\"1.1.132\"\n" <<
+            fstream << "ryuV=\"1.1.146\"\n" <<
                        "rm -r /opt/ryujinx\n" <<
                        "wget \"https://github.com/Ryujinx/release-channel-master/releases/download/$ryuV/ryujinx-$ryuV-linux_x64.tar.gz\"\n" <<
                        "tar -xvf \"ryujinx-$ryuV-linux_x64.tar.gz\"\n" <<

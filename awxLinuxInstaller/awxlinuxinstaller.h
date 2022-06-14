@@ -57,6 +57,7 @@ private:
         QString encRpwd;
         QString shgamesPart;
         QString shgamesPartWipe;
+        QString ntfs3Default;
     };
 
     Ui::AwxLinuxInstaller *ui;

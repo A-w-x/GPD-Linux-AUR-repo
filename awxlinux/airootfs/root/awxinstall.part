@@ -375,6 +375,13 @@ fi
 arch-chroot /mnt chmod +x /opt/scripts/retrofolderslink.sh
 arch-chroot /mnt ln -s /opt/scripts/retrofolderslink.sh /usr/local/bin/retrofolderslink
 
+if [ "$ntfs3win" = "true" ]; then
+cat <<- EOF > "/mnt/etc/udisks2/mount_options.conf"
+[defaults]
+ntfs_defaults=uid=1000,gid=1000
+EOF
+fi
+
 arch-chroot /mnt pacman -Syy
 
 if [ $swap -gt 0 ]; then

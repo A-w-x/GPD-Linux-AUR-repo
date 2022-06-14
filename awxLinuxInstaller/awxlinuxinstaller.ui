@@ -33,7 +33,7 @@
        <bool>true</bool>
       </property>
       <property name="currentIndex">
-       <number>1</number>
+       <number>2</number>
       </property>
       <widget class="QWidget" name="tab">
        <attribute name="title">
@@ -192,7 +192,7 @@
            <property name="geometry">
             <rect>
              <x>0</x>
-             <y>-248</y>
+             <y>0</y>
              <width>744</width>
              <height>595</height>
             </rect>
@@ -627,27 +627,24 @@
             </rect>
            </property>
            <layout class="QGridLayout" name="gridLayout_2">
-            <item row="3" column="0">
-             <layout class="QHBoxLayout" name="horizontalLayout_8">
-              <property name="topMargin">
-               <number>10</number>
-              </property>
+            <item row="4" column="0">
+             <layout class="QHBoxLayout" name="horizontalLayout_11">
               <item>
-               <widget class="QLabel" name="label_8">
+               <widget class="QLabel" name="label_11">
                 <property name="text">
-                 <string>User Password</string>
+                 <string>Root Password</string>
                 </property>
                </widget>
               </item>
               <item>
-               <widget class="QLineEdit" name="upwd">
+               <widget class="QLineEdit" name="rpwd">
                 <property name="echoMode">
                  <enum>QLineEdit::Password</enum>
                 </property>
                </widget>
               </item>
               <item>
-               <spacer name="horizontalSpacer_2">
+               <spacer name="horizontalSpacer_3">
                 <property name="orientation">
                  <enum>Qt::Horizontal</enum>
                 </property>
@@ -663,64 +660,16 @@
                </spacer>
               </item>
               <item>
-               <widget class="QLabel" name="label_9">
+               <widget class="QLabel" name="label_12">
                 <property name="text">
-                 <string>Confirm User Password</string>
+                 <string>Confirm Root Password</string>
                 </property>
                </widget>
               </item>
               <item>
-               <widget class="QLineEdit" name="ucpwd">
+               <widget class="QLineEdit" name="rcpwd">
                 <property name="echoMode">
                  <enum>QLineEdit::Password</enum>
-                </property>
-               </widget>
-              </item>
-             </layout>
-            </item>
-            <item row="1" column="0">
-             <layout class="QHBoxLayout" name="horizontalLayout_9">
-              <item>
-               <widget class="QLabel" name="label_7">
-                <property name="minimumSize">
-                 <size>
-                  <width>0</width>
-                  <height>0</height>
-                 </size>
-                </property>
-                <property name="text">
-                 <string>Username:</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QLineEdit" name="usrname">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
-               </widget>
-              </item>
-             </layout>
-            </item>
-            <item row="2" column="0">
-             <layout class="QHBoxLayout" name="horizontalLayout_10">
-              <item>
-               <widget class="QLabel" name="label_10">
-                <property name="text">
-                 <string>Device name:</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QLineEdit" name="devicename">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
                 </property>
                </widget>
               </item>
@@ -786,24 +735,27 @@
               </item>
              </layout>
             </item>
-            <item row="4" column="0">
-             <layout class="QHBoxLayout" name="horizontalLayout_11">
+            <item row="3" column="0">
+             <layout class="QHBoxLayout" name="horizontalLayout_8">
+              <property name="topMargin">
+               <number>10</number>
+              </property>
               <item>
-               <widget class="QLabel" name="label_11">
+               <widget class="QLabel" name="label_8">
                 <property name="text">
-                 <string>Root Password</string>
+                 <string>User Password</string>
                 </property>
                </widget>
               </item>
               <item>
-               <widget class="QLineEdit" name="rpwd">
+               <widget class="QLineEdit" name="upwd">
                 <property name="echoMode">
                  <enum>QLineEdit::Password</enum>
                 </property>
                </widget>
               </item>
               <item>
-               <spacer name="horizontalSpacer_3">
+               <spacer name="horizontalSpacer_2">
                 <property name="orientation">
                  <enum>Qt::Horizontal</enum>
                 </property>
@@ -819,20 +771,75 @@
                </spacer>
               </item>
               <item>
-               <widget class="QLabel" name="label_12">
+               <widget class="QLabel" name="label_9">
                 <property name="text">
-                 <string>Confirm Root Password</string>
+                 <string>Confirm User Password</string>
                 </property>
                </widget>
               </item>
               <item>
-               <widget class="QLineEdit" name="rcpwd">
+               <widget class="QLineEdit" name="ucpwd">
                 <property name="echoMode">
                  <enum>QLineEdit::Password</enum>
                 </property>
                </widget>
               </item>
              </layout>
+            </item>
+            <item row="2" column="0">
+             <layout class="QHBoxLayout" name="horizontalLayout_10">
+              <item>
+               <widget class="QLabel" name="label_10">
+                <property name="text">
+                 <string>Device name:</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QLineEdit" name="devicename">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item row="1" column="0">
+             <layout class="QHBoxLayout" name="horizontalLayout_9">
+              <item>
+               <widget class="QLabel" name="label_7">
+                <property name="minimumSize">
+                 <size>
+                  <width>0</width>
+                  <height>0</height>
+                 </size>
+                </property>
+                <property name="text">
+                 <string>Username:</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QLineEdit" name="usrname">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item row="5" column="0">
+             <widget class="QCheckBox" name="ntfs3MntChk">
+              <property name="text">
+               <string>Fix udisks2 ntfs3 driver support (may cause issues in some setups, should be fine for most tho)</string>
+              </property>
+             </widget>
             </item>
            </layout>
           </widget>
