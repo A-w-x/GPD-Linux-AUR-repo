@@ -43,10 +43,7 @@ void AwxLinuxInstaller::connectSignals() {
     QObject::connect(ui->installBtn, &QPushButton::clicked, this, &AwxLinuxInstaller::onInstallBtnClicked);
 }
 
-AwxLinuxInstaller::AwxLinuxInstaller(QWidget *parent)
-    : QMainWindow(parent)
-    , ui(new Ui::AwxLinuxInstaller)
-{
+AwxLinuxInstaller::AwxLinuxInstaller(QWidget *parent): QMainWindow(parent), ui(new Ui::AwxLinuxInstaller) {
     ui->setupUi(this);
     initUI();
     connectSignals();
@@ -179,6 +176,7 @@ QString AwxLinuxInstaller::genSummary(const installData &data) {
 
     summary << "Summary\n\n\n" <<
                "EFI partition (mounted as /boot/efi): " << data.efiPart << "\n\n" <<
+               "Wipe EFI partition: " << data.efiPartWipe << "\n\n" <<
                "AwxLinux partition: " << data.awxPart << "\n\n" <<
                "AwxLinux partition format: " << (data.awxPartFormat.compare("-") == 0 ? "custom":data.awxPartFormat) << "\n\n";
 
@@ -244,6 +242,7 @@ void AwxLinuxInstaller::genInstallScript(const installData &data) {
                "homeformat=\"" << data.homePartFormat << "\"\n" <<
                "homebtrfsmopts=\"" << data.homePartBtrfsOpts << "\"\n" <<
                "efipart=\"" << data.efiPart << "\"\n" <<
+               "formatefip=\"" << data.efiPartWipe << "\"\n" <<
                "shgamespart=\"" << data.shgamesPart << "\"\n" <<
                "formatshgames=\"" << data.shgamesPartWipe << "\"\n" <<
                "timezone=\"" << data.timezone << "\"\n" <<
@@ -299,6 +298,7 @@ void AwxLinuxInstaller::installOS() {
         .region = ui->regionCombo->currentText(),
         .zone = ui->zoneCombo->currentText(),
         .efiPart = ui->efiPartCombo->currentText(),
+        .efiPartWipe = utls.boolString(ui->formatEfiChk->isChecked()),
         .instGrub = utls.boolString(ui->instGrubCombo->currentIndex() == 0),
         .awxPart = ui->awxPartCombo->currentText(),
         .awxPartFormat = ui->awxPFormatCombo->currentIndex() == 2 ? "-":ui->awxPFormatCombo->currentText(),
@@ -384,11 +384,6 @@ void AwxLinuxInstaller::installApps() {
     if (!emusStrList.empty()) {
         fstream << "yay -S --noconfirm wolfssl cubeb cpp-httplib-compiled discord-rpc-git fmt libao wxgtk2 wxgtk3\n";
 
-        if (emusStrList.contains("yuzu-mainline-bin")) {
-            fstream << "yay -S --noconfirm yuzu-mainline-bin\n";
-            emusStrList.removeAll("yuzu-mainline-bin");
-        }
-
         if (emusStrList.contains("pcsx2-git"))
             fstream << "yay -S --noconfirm rapidyaml-git\n";
 
@@ -415,7 +410,7 @@ void AwxLinuxInstaller::installApps() {
         }
 
         if (emusStrList.contains("ryu")) {
-            fstream << "ryuV=\"1.1.146\"\n" <<
+            fstream << "ryuV=\"1.1.162\"\n" <<
                        "rm -r /opt/ryujinx\n" <<
                        "wget \"https://github.com/Ryujinx/release-channel-master/releases/download/$ryuV/ryujinx-$ryuV-linux_x64.tar.gz\"\n" <<
                        "tar -xvf \"ryujinx-$ryuV-linux_x64.tar.gz\"\n" <<

@@ -15,7 +15,7 @@ galliumd=""
 vulkand=""
 flags=""
 commit=""
-prs="13294 16299 16556"
+prs="13294 16299 16556 17001 14772 16307 17182"
 
 ccache -C
 
@@ -40,12 +40,10 @@ fi
 
 case "$1" in
 	"max20"|"maxw3")
-		#drid="i915"
 		galliumd="svga,virgl,swrast,iris"
 		vulkand="intel"
 		;;
 	"maxamd")
-		#drid="r100,r200"
 		galliumd="radeonsi,swrast,svga,virgl"
 		vulkand="amd"
 

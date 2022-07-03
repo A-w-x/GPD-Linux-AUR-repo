@@ -41,6 +41,7 @@ private:
         QString region;
         QString zone;
         QString efiPart;
+        QString efiPartWipe;
         QString instGrub;
         QString awxPart;
         QString awxPartFormat;
@@ -84,8 +85,7 @@ private:
         {"SCUMMVM", "scummvm"},
         {"Retroarch", "retroarch"},
         {"ryujinx", "ryu"},
-        {"Cemu", "cemu"},
-        {"Yuzu", "yuzu-mainline-bin"}
+        {"Cemu", "cemu"}
     };
     QHash<QString, QString> pcGamesMap = {
         {"Steam", "steam"},

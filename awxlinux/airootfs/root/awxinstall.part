@@ -69,6 +69,10 @@ if [[ "$homepart" != "" ]]; then
 	fi
 fi
 
+if [ "$formatefip" = "true" ]; then
+	mkfs.fat -F 32 "$efipart"
+fi
+
 mkdir -p /mnt/boot
 mount "$efipart" /mnt/boot
 pacstrap /mnt base "$pacstrapbtrfs" linux linux-firmware

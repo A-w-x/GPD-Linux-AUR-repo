@@ -1,26 +1,33 @@
+From 87919e9158da15bb24cf409d06a66961fbe521ee Mon Sep 17 00:00:00 2001
+From: gituser <nore@nop.np>
+Date: Fri, 24 Jun 2022 14:50:07 +0200
+Subject: [PATCH] anv
+
+---
+ src/intel/vulkan/anv_pipeline.c | 94 ++++++++++++++++++++++++---------
+ 1 file changed, 70 insertions(+), 24 deletions(-)
+
 diff --git a/src/intel/vulkan/anv_pipeline.c b/src/intel/vulkan/anv_pipeline.c
-index e7db9215d11..ed5917d52d1 100644
+index 0c97ab53722..e2b882001b9 100644
 --- a/src/intel/vulkan/anv_pipeline.c
 +++ b/src/intel/vulkan/anv_pipeline.c
-@@ -487,9 +487,12 @@ populate_wm_prog_key(const struct anv_graphics_pipeline *pipeline,
+@@ -485,8 +485,11 @@ populate_wm_prog_key(const struct anv_graphics_pipeline *pipeline,
     key->ignore_sample_mask_out = false;
  
     assert(rendering_info->colorAttachmentCount <= MAX_RTS);
 -   /* Consider all inputs as valid until look at the NIR variables. */
--   key->color_outputs_valid = (1u << MAX_RTS) - 1;
--   key->nr_color_regions = MAX_RTS;
+-   key->color_outputs_valid = (1u << rendering_info->colorAttachmentCount) - 1;
 +   for (uint32_t i = 0; i < rendering_info->colorAttachmentCount; i++) {
 +      if (rendering_info->pColorAttachmentFormats[i] != VK_FORMAT_UNDEFINED)
 +         key->color_outputs_valid |= (1 << i);
 +   }
 +
-+   key->nr_color_regions = rendering_info->colorAttachmentCount;
+    key->nr_color_regions = rendering_info->colorAttachmentCount;
  
     /* To reduce possible shader recompilations we would need to know if
-     * there is a SampleMask output variable to compute if we should emit
-@@ -1116,26 +1119,6 @@ static void
- anv_pipeline_link_fs(const struct brw_compiler *compiler,
-                      struct anv_pipeline_stage *stage)
+@@ -1129,28 +1132,6 @@ anv_pipeline_link_fs(const struct brw_compiler *compiler,
+                      struct anv_pipeline_stage *stage,
+                      const VkPipelineRenderingCreateInfo *rendering_info)
  {
 -   /* Initially the valid outputs value is set to all possible render targets
 -    * valid (see populate_wm_prog_key()), before we look at the shader
@@ -39,17 +46,19 @@ index e7db9215d11..ed5917d52d1 100644
 -
 -      stage->key.wm.color_outputs_valid |= BITFIELD_RANGE(rt, array_len);
 -   }
+-   stage->key.wm.color_outputs_valid &=
+-      (1u << rendering_info->colorAttachmentCount) - 1;
 -   stage->key.wm.nr_color_regions =
 -      util_last_bit(stage->key.wm.color_outputs_valid);
 -
     unsigned num_rt_bindings;
     struct anv_pipeline_binding rt_bindings[MAX_RTS];
     if (stage->key.wm.nr_color_regions > 0) {
-@@ -1169,6 +1152,71 @@ anv_pipeline_link_fs(const struct brw_compiler *compiler,
+@@ -1184,6 +1165,71 @@ anv_pipeline_link_fs(const struct brw_compiler *compiler,
     typed_memcpy(stage->bind_map.surface_to_descriptor,
                  rt_bindings, num_rt_bindings);
     stage->bind_map.surface_count += num_rt_bindings;
-+   
++
 +   /* Now that we've set up the color attachments, we can go through and
 +    * eliminate any shader outputs that map to VK_ATTACHMENT_UNUSED in the
 +    * hopes that dead code can clean them up in this and any earlier shader
@@ -117,3 +126,6 @@ index e7db9215d11..ed5917d52d1 100644
  }
  
  static void
+-- 
+2.36.1
+
