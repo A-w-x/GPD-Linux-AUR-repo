@@ -1,6 +1,6 @@
 vaapi=""
 cpuv=""
-pacstrapbtrfs=""
+pacstrappkgs="base linux linux-firmware"
 device=$(dmidecode | grep -i product\ name | grep -Po 'Name: \K[^"]*' | head -n1)
 cpun=$(cat /proc/cpuinfo | grep 'model name' | sed -e 's/model name.*: //' | head -n 1)
 
@@ -33,11 +33,14 @@ fi
 
 timedatectl set-ntp true
 
+if [ "$pformat" = "btrfs" ] || [ "$homeformat" = "btrfs" ]; then
+	pacstrappkgs="$pacstrappkgs btrfs-progs"
+fi
+
 if [[ "$pformat" != "-" ]]; then
 	if [ "$pformat" = "ext4" ]; then
 		mkfs.ext4 -L AwxLinux -F "$awxpart"
 	else
-		pacstrapbtrfs="btrfs-progs"
 		mkfs.btrfs -L AwxLinux -f "$awxpart"
 	fi
 fi
@@ -53,7 +56,6 @@ if [[ "$homepart" != "" ]]; then
 		if [ "$homeformat" = "ext4" ]; then
 			mkfs.ext4 -L AwxLinuxHome -F "$homepart"
 		else
-			pacstrapbtrfs="btrfs-progs"
 			mkfs.btrfs -L AwxLinuxHome -f "$homepart"
 		fi
 	fi
@@ -75,7 +77,7 @@ fi
 
 mkdir -p /mnt/boot
 mount "$efipart" /mnt/boot
-pacstrap /mnt base "$pacstrapbtrfs" linux linux-firmware
+pacstrap /mnt $pacstrappkgs
 genfstab -U /mnt >> /mnt/etc/fstab
 
 ln -sf "/mnt/usr/share/zoneinfo/$timezone" /mnt/etc/localtime

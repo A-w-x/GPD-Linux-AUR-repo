@@ -7,13 +7,13 @@ b43-fwcutter
 base
 bind
 brltty
-broadcom-wl
 btrfs-progs
 cryptsetup
 darkhttpd
 dhclient
 dhcpcd
 diffutils
+dmidecode
 dmraid
 dnsmasq
 dosfstools
@@ -100,7 +100,6 @@ wvdial
 xfsprogs
 xl2tpd
 zsh
-dmidecode
 unzip
 unrar
 xorg-server
