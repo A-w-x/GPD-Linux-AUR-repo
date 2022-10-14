@@ -1,0 +1,4 @@
+# CONFIG_HYPERVISOR_GUEST is not set
+# CONFIG_RETPOLINE is not set
+# CONFIG_SEV_GUEST is not set
+# CONFIG_VBOXGUEST is not set

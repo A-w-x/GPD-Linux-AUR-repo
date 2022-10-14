@@ -1,0 +1,221 @@
+From 934aa31433bf7f0d92eaaebb302cbbcf7cf23064 Mon Sep 17 00:00:00 2001
+From: auser <nore@nop.com>
+Date: Sat, 8 Oct 2022 20:04:17 +0000
+Subject: [PATCH] ryufix
+
+---
+ .gitignore                                   |  1 +
+ src/compiler/glsl/ir_optimization.h          |  1 +
+ src/compiler/glsl/lower_offset_array.cpp     | 91 ++++++++++++++++++++
+ src/compiler/glsl/meson.build                |  1 +
+ src/gallium/drivers/d3d12/d3d12_compiler.cpp |  1 -
+ src/gallium/drivers/r600/sfn/sfn_nir.cpp     |  1 -
+ src/gallium/drivers/radeonsi/si_shader_nir.c |  1 -
+ src/mesa/state_tracker/st_glsl_to_ir.cpp     |  2 +
+ src/mesa/state_tracker/st_glsl_to_nir.cpp    |  9 +-
+ 9 files changed, 99 insertions(+), 9 deletions(-)
+ create mode 100644 src/compiler/glsl/lower_offset_array.cpp
+
+diff --git a/.gitignore b/.gitignore
+index 9b156306415a..fb9c433fc240 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -2,3 +2,4 @@
+ *.pyo
+ *.out
+ /build
++*.orig
+diff --git a/src/compiler/glsl/ir_optimization.h b/src/compiler/glsl/ir_optimization.h
+index 5cd96c9bf951..9e32fae5423d 100644
+--- a/src/compiler/glsl/ir_optimization.h
++++ b/src/compiler/glsl/ir_optimization.h
+@@ -114,6 +114,7 @@ bool lower_packing_builtins(exec_list *instructions, int op_mask);
+ bool lower_vector_insert(exec_list *instructions, bool lower_nonconstant_index);
+ bool lower_vector_derefs(gl_linked_shader *shader);
+ void lower_named_interface_blocks(void *mem_ctx, gl_linked_shader *shader);
++bool lower_offset_arrays(exec_list *instructions);
+ void optimize_dead_builtin_variables(exec_list *instructions,
+                                      enum ir_variable_mode other);
+ bool lower_tess_level(gl_linked_shader *shader);
+diff --git a/src/compiler/glsl/lower_offset_array.cpp b/src/compiler/glsl/lower_offset_array.cpp
+new file mode 100644
+index 000000000000..96486c3a7112
+--- /dev/null
++++ b/src/compiler/glsl/lower_offset_array.cpp
+@@ -0,0 +1,91 @@
++/*
++ * Copyright © 2013 Intel Corporation
++ *
++ * Permission is hereby granted, free of charge, to any person obtaining a
++ * copy of this software and associated documentation files (the "Software"),
++ * to deal in the Software without restriction, including without limitation
++ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
++ * and/or sell copies of the Software, and to permit persons to whom the
++ * Software is furnished to do so, subject to the following conditions:
++ *
++ * The above copyright notice and this permission notice (including the next
++ * paragraph) shall be included in all copies or substantial portions of the
++ * Software.
++ *
++ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
++ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
++ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
++ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
++ * DEALINGS IN THE SOFTWARE.
++ */
++
++/**
++ * \file lower_offset_array.cpp
++ *
++ * IR lower pass to decompose ir_texture ir_tg4 with an array of offsets
++ * into four ir_tg4s with a single ivec2 offset, select the .w component of each,
++ * and return those four values packed into a gvec4.
++ *
++ * \author Chris Forbes <chrisf@ijw.co.nz>
++ */
++
++#include "compiler/glsl_types.h"
++#include "ir.h"
++#include "ir_builder.h"
++#include "ir_optimization.h"
++#include "ir_rvalue_visitor.h"
++
++using namespace ir_builder;
++
++class lower_offset_array_visitor : public ir_rvalue_visitor {
++public:
++   lower_offset_array_visitor()
++   {
++      progress = false;
++   }
++
++   void handle_rvalue(ir_rvalue **rv);
++
++   bool progress;
++};
++
++void
++lower_offset_array_visitor::handle_rvalue(ir_rvalue **rv)
++{
++   if (*rv == NULL || (*rv)->ir_type != ir_type_texture)
++      return;
++
++   ir_texture *ir = (ir_texture *) *rv;
++   if (ir->op != ir_tg4 || !ir->offset || !ir->offset->type->is_array())
++      return;
++
++   void *mem_ctx = ralloc_parent(ir);
++
++   ir_variable *var =
++      new (mem_ctx) ir_variable(ir->type, "result", ir_var_temporary);
++   base_ir->insert_before(var);
++
++   for (int i = 0; i < 4; i++) {
++      ir_texture *tex = ir->clone(mem_ctx, NULL);
++      tex->offset = new (mem_ctx) ir_dereference_array(tex->offset,
++            new (mem_ctx) ir_constant(i));
++
++      base_ir->insert_before(assign(var, swizzle_w(tex), 1 << i));
++   }
++
++   *rv = new (mem_ctx) ir_dereference_variable(var);
++
++   progress = true;
++}
++
++bool
++lower_offset_arrays(exec_list *instructions)
++{
++   lower_offset_array_visitor v;
++
++   visit_list_elements(&v, instructions);
++
++   return v.progress;
++}
+diff --git a/src/compiler/glsl/meson.build b/src/compiler/glsl/meson.build
+index ac7cc3339136..caeb872d68a4 100644
+--- a/src/compiler/glsl/meson.build
++++ b/src/compiler/glsl/meson.build
+@@ -162,6 +162,7 @@ files_libglsl = files(
+   'lower_int64.cpp',
+   'lower_jumps.cpp',
+   'lower_mat_op_to_vec.cpp',
++  'lower_offset_array.cpp',
+   'lower_named_interface_blocks.cpp',
+   'lower_packing_builtins.cpp',
+   'lower_precision.cpp',
+diff --git a/src/gallium/drivers/d3d12/d3d12_compiler.cpp b/src/gallium/drivers/d3d12/d3d12_compiler.cpp
+index c80f1b6ae407..c2625cc8b066 100644
+--- a/src/gallium/drivers/d3d12/d3d12_compiler.cpp
++++ b/src/gallium/drivers/d3d12/d3d12_compiler.cpp
+@@ -1175,7 +1175,6 @@ select_shader_variant(struct d3d12_selection_context *sel_ctx, d3d12_shader_sele
+       tex_options.saturate_r = key.tex_saturate_r;
+       tex_options.saturate_t = key.tex_saturate_t;
+       tex_options.lower_invalid_implicit_lod = true;
+-      tex_options.lower_tg4_offsets = true;
+ 
+       NIR_PASS_V(new_nir_variant, nir_lower_tex, &tex_options);
+    }
+diff --git a/src/gallium/drivers/r600/sfn/sfn_nir.cpp b/src/gallium/drivers/r600/sfn/sfn_nir.cpp
+index 6edf79037ac2..1baf9e3f9a8f 100644
+--- a/src/gallium/drivers/r600/sfn/sfn_nir.cpp
++++ b/src/gallium/drivers/r600/sfn/sfn_nir.cpp
+@@ -692,7 +692,6 @@ int r600_shader_from_nir(struct r600_context *rctx,
+    lower_tex_options.lower_txp = ~0u;
+    lower_tex_options.lower_txf_offset = true;
+    lower_tex_options.lower_invalid_implicit_lod = true;
+-   lower_tex_options.lower_tg4_offsets = true;
+ 
+    NIR_PASS_V(sel->nir, nir_lower_tex, &lower_tex_options);
+    NIR_PASS_V(sel->nir, r600_nir_lower_txl_txf_array_or_cube);
+diff --git a/src/gallium/drivers/radeonsi/si_shader_nir.c b/src/gallium/drivers/radeonsi/si_shader_nir.c
+index 135f8711a38c..cac88cc9299d 100644
+--- a/src/gallium/drivers/radeonsi/si_shader_nir.c
++++ b/src/gallium/drivers/radeonsi/si_shader_nir.c
+@@ -258,7 +258,6 @@ static void si_lower_nir(struct si_screen *sscreen, struct nir_shader *nir)
+       .lower_txp = ~0u,
+       .lower_txs_cube_array = true,
+       .lower_invalid_implicit_lod = true,
+-      .lower_tg4_offsets = true,
+    };
+    NIR_PASS_V(nir, nir_lower_tex, &lower_tex_options);
+ 
+diff --git a/src/mesa/state_tracker/st_glsl_to_ir.cpp b/src/mesa/state_tracker/st_glsl_to_ir.cpp
+index 006f5de568e4..79496f1e913e 100644
+--- a/src/mesa/state_tracker/st_glsl_to_ir.cpp
++++ b/src/mesa/state_tracker/st_glsl_to_ir.cpp
+@@ -94,6 +94,8 @@ link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
+          lower_packing_builtins(ir, lower_inst);
+       }
+ 
++      if (!pscreen->get_param(pscreen, PIPE_CAP_TEXTURE_GATHER_OFFSETS))
++         lower_offset_arrays(ir);
+       do_mat_op_to_vec(ir);
+ 
+       if (stage == MESA_SHADER_FRAGMENT && pscreen->get_param(pscreen, PIPE_CAP_FBFETCH))
+diff --git a/src/mesa/state_tracker/st_glsl_to_nir.cpp b/src/mesa/state_tracker/st_glsl_to_nir.cpp
+index 868f4371d01d..a03ba53bc690 100644
+--- a/src/mesa/state_tracker/st_glsl_to_nir.cpp
++++ b/src/mesa/state_tracker/st_glsl_to_nir.cpp
+@@ -1040,13 +1040,10 @@ st_finalize_nir(struct st_context *st, struct gl_program *prog,
+    NIR_PASS_V(nir, nir_split_var_copies);
+    NIR_PASS_V(nir, nir_lower_var_copies);
+ 
+-   const bool lower_tg4_offsets =
+-      !st->screen->get_param(screen, PIPE_CAP_TEXTURE_GATHER_OFFSETS);
++   if (st->lower_rect_tex) {
++      struct nir_lower_tex_options opts = { 0 };
+ 
+-   if (st->lower_rect_tex || lower_tg4_offsets) {
+-      struct nir_lower_tex_options opts = {0};
+-      opts.lower_rect = !!st->lower_rect_tex;
+-      opts.lower_tg4_offsets = lower_tg4_offsets;
++      opts.lower_rect = true;
+ 
+       NIR_PASS_V(nir, nir_lower_tex, &opts);
+    }
+-- 
+2.38.0
+

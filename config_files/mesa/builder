@@ -1,6 +1,6 @@
 #!/bin/bash
 if [ -z $1 ]; then
-	echo -e "You must provide a target!\nTargets: max20, maxw3\n"
+	echo -e "You must provide a target!\nTargets: tgl\n"
 	exit 1
 fi
 
@@ -15,7 +15,7 @@ galliumd=""
 vulkand=""
 flags=""
 commit=""
-prs="16299 17182 17944 17980 17972 18402 18725 17906"
+prs="18402 18725 18880 19026"
 
 ccache -C
 
@@ -39,11 +39,11 @@ if [ "$1" == "pull" ]; then
 fi
 
 case "$1" in
-	"max20"|"maxw3")
+	"tgl")
 		galliumd="svga,virgl,swrast,iris"
 		vulkand="intel"
 		;;
-	"maxamd")
+	"amd")
 		galliumd="radeonsi,swrast,svga,virgl"
 		vulkand="amd"
 
@@ -56,13 +56,9 @@ case "$1" in
 esac
 
 case "$1" in
-	"max20")
-		flags="-mtune=icelake-client"
-		pkgname="mesa-wmax20-tkg"
-		;;
-	"maxw3")
-		flags="-march=tigerlake -mmmx -mpopcnt -msse -msse2 -msse3 -mssse3 -msse4.1 -msse4.2 -mavx -mavx2 -mno-sse4a -mno-fma4 -mno-xop -mfma -mavx512f -mbmi -mbmi2 -maes -mpclmul -mavx512vl -mavx512bw -mavx512dq -mavx512cd -mno-avx512er -mno-avx512pf -mavx512vbmi -mavx512ifma -mno-avx5124vnniw -mno-avx5124fmaps -mavx512vpopcntdq -mavx512vbmi2 -mgfni -mvpclmulqdq -mavx512vnni -mavx512bitalg -mno-avx512bf16 -mavx512vp2intersect -mno-3dnow -madx -mabm -mno-cldemote -mclflushopt -mclwb -mno-clzero -mcx16 -mno-enqcmd -mf16c -mfsgsbase -mfxsr -mno-hle -msahf -mno-lwp -mlzcnt -mmovbe -mmovdir64b -mmovdiri -mno-mwaitx -mno-pconfig -mpku -mno-prefetchwt1 -mprfchw -mno-ptwrite -mrdpid -mrdrnd -mrdseed -mno-rtm -mno-serialize -mno-sgx -msha -mshstk -mno-tbm -mno-tsxldtrk -mvaes -mno-waitpkg -mno-wbnoinvd -mxsave -mxsavec -mxsaveopt -mxsaves -mno-amx-tile -mno-amx-int8 -mno-amx-bf16 -mno-uintr -mno-hreset -mno-kl -mno-widekl -mno-avxvnni --param l1-cache-size=48 --param l1-cache-line-size=64 --param l2-cache-size=12288 -mtune=tigerlake"
-		pkgname="mesa-wmax21w3-tkg"
+	"tgl")
+		flags="-march=tigerlake -mtune=tigerlake"
+		pkgname="mesa-tgl-tkg"
 		;;
 	*)
 		echo -e "unknown target!\n"

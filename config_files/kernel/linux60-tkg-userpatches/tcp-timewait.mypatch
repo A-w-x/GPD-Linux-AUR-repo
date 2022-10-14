@@ -1,0 +1,87 @@
+diff --git a/include/net/tcp.h b/include/net/tcp.h
+index d05193cb0d990adaffa97d274ff99d45f734db56..54f007dc114b45634ed64cbc152155fba056a8f6 100644
+--- a/include/net/tcp.h
++++ b/include/net/tcp.h
+@@ -120,6 +120,7 @@ void tcp_time_wait(struct sock *sk, int state, int timeo);
+ 
+ #define TCP_TIMEWAIT_LEN (60*HZ) /* how long to wait to destroy TIME-WAIT
+ 				  * state, about 60 seconds	*/
++#define TCP_TIMEWAIT_LEN_MIN (1*HZ)
+ #define TCP_FIN_TIMEOUT	TCP_TIMEWAIT_LEN
+                                  /* BSD style FIN_WAIT2 deadlock breaker.
+ 				  * It used to be 3min, new value is 60sec,
+@@ -1489,6 +1490,34 @@ static inline int tcp_fin_time(const struct sock *sk)
+ 	return fin_timeout;
+ }
+ 
++static inline int tcp_timewait_len(const struct inet_timewait_sock *tw)
++{
++	bool loopback = false;
++
++	if (tw->tw_bound_dev_if == LOOPBACK_IFINDEX)
++		loopback = true;
++#if IS_ENABLED(CONFIG_IPV6)
++	else if (tw->tw_family == AF_INET6) {
++		if (ipv6_addr_loopback(&tw->tw_v6_daddr) ||
++			ipv6_addr_v4mapped_loopback(&tw->tw_v6_daddr) ||
++			ipv6_addr_loopback(&tw->tw_v6_rcv_saddr) ||
++			ipv6_addr_v4mapped_loopback(&tw->tw_v6_rcv_saddr))
++			loopback = true;
++	}
++#endif
++	else
++	{
++		if (ipv4_is_loopback(tw->tw_daddr) ||
++			ipv4_is_loopback(tw->tw_rcv_saddr))
++			loopback = true;
++	}
++
++	if (!loopback)
++		return TCP_TIMEWAIT_LEN;
++
++	return max(TCP_TIMEWAIT_LEN_MIN, sock_net((const struct sock*)tw)->ipv4.sysctl_tcp_fin_timeout);
++}
++
+ static inline bool tcp_paws_check(const struct tcp_options_received *rx_opt,
+ 				  int paws_win)
+ {
+diff --git a/net/ipv4/tcp_minisocks.c b/net/ipv4/tcp_minisocks.c
+index 7513ba45553dba4de8fc9b85b2c18874f1ecbe22..2da332148d90c71a546c65cef980d56e7f68bde4 100644
+--- a/net/ipv4/tcp_minisocks.c
++++ b/net/ipv4/tcp_minisocks.c
+@@ -149,7 +149,7 @@ tcp_timewait_state_process(struct inet_timewait_sock *tw, struct sk_buff *skb,
+ 			tcptw->tw_ts_recent	  = tmp_opt.rcv_tsval;
+ 		}
+ 
+-		inet_twsk_reschedule(tw, TCP_TIMEWAIT_LEN);
++		inet_twsk_reschedule(tw, tcp_timewait_len(tw));
+ 		return TCP_TW_ACK;
+ 	}
+ 
+@@ -186,7 +186,7 @@ tcp_timewait_state_process(struct inet_timewait_sock *tw, struct sk_buff *skb,
+ 				return TCP_TW_SUCCESS;
+ 			}
+ 		} else {
+-			inet_twsk_reschedule(tw, TCP_TIMEWAIT_LEN);
++			inet_twsk_reschedule(tw, tcp_timewait_len(tw));
+ 		}
+ 
+ 		if (tmp_opt.saw_tstamp) {
+@@ -237,7 +237,7 @@ tcp_timewait_state_process(struct inet_timewait_sock *tw, struct sk_buff *skb,
+ 		 * Do not reschedule in the last case.
+ 		 */
+ 		if (paws_reject || th->ack)
+-			inet_twsk_reschedule(tw, TCP_TIMEWAIT_LEN);
++			inet_twsk_reschedule(tw, tcp_timewait_len(tw));
+ 
+ 		return tcp_timewait_check_oow_rate_limit(
+ 			tw, skb, LINUX_MIB_TCPACKSKIPPEDTIMEWAIT);
+@@ -315,7 +315,7 @@ void tcp_time_wait(struct sock *sk, int state, int timeo)
+ 			timeo = rto;
+ 
+ 		if (state == TCP_TIME_WAIT)
+-			timeo = TCP_TIMEWAIT_LEN;
++			timeo = tcp_timewait_len(tw);
+ 
+ 		/* tw_timer is pinned, so we need to make sure BH are disabled
+ 		 * in following section, otherwise timer handler could run before

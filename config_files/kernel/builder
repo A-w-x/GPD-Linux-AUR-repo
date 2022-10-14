@@ -1,6 +1,6 @@
 #!/bin/bash
 if [ -z $1 ]; then
-	echo -e "\nYou must provide a target!\nTargets: max20, maxw3, maxamd, generic\n"
+	echo -e "\nYou must provide a target!\nTargets: tgl, generic\n"
 	exit 1
 fi
 
@@ -25,14 +25,8 @@ if [ "$1" == "pull" ]; then
 fi
 
 case "$1" in
-	"max20")
-		cmd="mitigations=off nowatchdog"
-		;;
-	"maxw3")
+	"tgl")
 		cmd="mitigations=off nowatchdog i915.enable_guc=2"
-		;;
-	"maxamd")
-		cmd="mitigations=off nowatchdog"
 		;;
 	"generic")
 		cmd="mitigations=off nowatchdog"
@@ -45,20 +39,10 @@ case "$1" in
 esac
 
 case "$1" in
-	"max20")
-		pkgnamel="wmax20"
-		pkgnameb="$pkgnamel-tkg"
-		optflag="icelake-client"
-		;;
-	"maxw3")
-		pkgnamel="wmaxw3-tgl"
+	"tgl")
+		pkgnamel="awx-tgl"
 		pkgnameb="$pkgnamel-tkg"
 		optflag="tigerlake"
-		;;
-	"maxamd")
-		pkgnamel="wmax21amd"
-		pkgnameb="$pkgnamel-tkg"
-		optflag="zen2"
 		;;
 	"generic")
 		pkgnamel="generic4"
@@ -77,11 +61,8 @@ esac
 
 if [ ! -z $2 ]; then
 	case "$1" in
-		"max20"|"maxw3"|"sandy")
+		"tgl"|"sandy")
 			optflag="native_intel"
-			;;
-		"maxamd")
-			optflag="native_amd"
 			;;
 		"generic") ;;
 		*)
