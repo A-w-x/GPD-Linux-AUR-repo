@@ -15,16 +15,10 @@ galliumd=""
 vulkand=""
 flags=""
 commit=""
-prs="18402 18725 18880 19026"
+prs="18402 18725 18880"
 
 ccache -C
 
-if [ -f "/etc/omakepkg.conf" ]; then
-	sudo cp /etc/omakepkg.conf /etc/makepkg.conf
-	sudo rm /etc/omakepkg.conf
-fi
-
-sudo cp /etc/makepkg.conf /etc/omakepkg.conf
 sudo rm -r pkg src
 
 if [ -f "customization.cfg" ]; then
@@ -83,6 +77,3 @@ sed -i "s/MESAPRS/$prs/" customization.cfg
 sed -i "s/mesa-tkg/$pkgname/g" PKGBUILD
 
 makepkg -s
-
-sudo cp /etc/omakepkg.conf /etc/makepkg.conf
-sudo rm /etc/omakepkg.conf
